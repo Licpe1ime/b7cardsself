@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "koa-websocket": "^7.0.0",
+    "ws": "^8.18.3"
+  }
+  
+}
+
