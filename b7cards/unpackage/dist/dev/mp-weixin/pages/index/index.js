@@ -12,7 +12,8 @@ const _sfc_main = {
       messages: [],
       reconnectTimer: null,
       reconnectCount: 0,
-      maxReconnectCount: 5
+      maxReconnectCount: 5,
+      myDeviceId: null
     };
   },
   onLoad() {
@@ -23,7 +24,7 @@ const _sfc_main = {
     },
     //连接websocket 
     connectWebSocket() {
-      common_vendor.index.__f__("log", "at pages/index/index.vue:57", "连接websocket");
+      common_vendor.index.__f__("log", "at pages/index/index.vue:59", "连接websocket");
       if (this.reconnectTimer) {
         clearTimeout(this.reconnectTimer);
         this.reconnectTimer = null;
@@ -33,24 +34,36 @@ const _sfc_main = {
         url: socketUrl,
         success: (ctx) => {
           this.connectionStatus = "连接中";
-          common_vendor.index.__f__("log", "at pages/index/index.vue:69", "连接成功");
+          common_vendor.index.__f__("log", "at pages/index/index.vue:71", "连接成功");
           this.isConnected = true;
           this.connectionStatus = "已连接";
-          common_vendor.index.__f__("log", "at pages/index/index.vue:72", JSON.stringify(ctx));
+          common_vendor.index.__f__("log", "at pages/index/index.vue:74", JSON.stringify(ctx));
         },
         fail: (err) => {
-          common_vendor.index.__f__("error", "at pages/index/index.vue:77", "WebSocket连接创建失败:", err);
+          common_vendor.index.__f__("error", "at pages/index/index.vue:79", "WebSocket连接创建失败:", err);
           this.connectionStatus = "连接失败";
           this.handleReconnect();
         }
       });
       this.socketTask.onOpen((res) => {
-        common_vendor.index.__f__("log", "at pages/index/index.vue:83", "连接已经打开");
+        common_vendor.index.__f__("log", "at pages/index/index.vue:85", "连接已经打开");
         this.socketTask.onMessage((res2) => {
           try {
             const data = JSON.parse(res2.data);
-            this.addMessage(` 服务器回复: ${data.content}`);
+            if (data.type === "system" && data.deviceId) {
+              this.myDeviceId = data.deviceId;
+            }
+            if (data.type === "message") {
+              let prefix = "";
+              if (data.deviceId === this.myDeviceId) {
+                prefix = "[我] ";
+              } else {
+                prefix = `[设备${data.deviceId}] `;
+              }
+              this.addMessage(prefix + data.content);
+            }
           } catch (e) {
+            common_vendor.index.__f__("log", "at pages/index/index.vue:109", e);
             this.addMessage(` 服务器错误回复: ${res2.data}`);
           }
         });
@@ -67,11 +80,11 @@ const _sfc_main = {
         this.socketTask.send({
           data: JSON.stringify(message),
           success: () => {
-            common_vendor.index.__f__("log", "at pages/index/index.vue:114", "消息发送成功");
+            common_vendor.index.__f__("log", "at pages/index/index.vue:130", "消息发送成功");
             this.addMessage(" 发送: " + JSON.stringify(message));
           },
           fail: (err) => {
-            common_vendor.index.__f__("error", "at pages/index/index.vue:120", "消息发送失败:", err);
+            common_vendor.index.__f__("error", "at pages/index/index.vue:136", "消息发送失败:", err);
             this.addMessage(" 发送失败");
           }
         });
@@ -83,13 +96,13 @@ const _sfc_main = {
       }
     },
     handleReconnect() {
-      common_vendor.index.__f__("log", "at pages/index/index.vue:133", "解决重连服务");
+      common_vendor.index.__f__("log", "at pages/index/index.vue:149", "解决重连服务");
     },
     addMessage(msg) {
       this.messages.push(msg);
     },
     sendWebSocket() {
-      common_vendor.index.__f__("log", "at pages/index/index.vue:139", "发送消息给websocket服务");
+      common_vendor.index.__f__("log", "at pages/index/index.vue:155", "发送消息给websocket服务");
       if (this.socketTask && this.isConnected) {
         const message = {
           type: "message",
@@ -99,11 +112,11 @@ const _sfc_main = {
         this.socketTask.send({
           data: JSON.stringify(message),
           success: () => {
-            common_vendor.index.__f__("log", "at pages/index/index.vue:150", "消息发送成功");
+            common_vendor.index.__f__("log", "at pages/index/index.vue:166", "消息发送成功");
             this.addMessage(" 发送成功: " + JSON.stringify(message));
           },
           fail: (err) => {
-            common_vendor.index.__f__("error", "at pages/index/index.vue:154", "消息发送失败:", err);
+            common_vendor.index.__f__("error", "at pages/index/index.vue:170", "消息发送失败:", err);
             this.addMessage(" 发送失败");
           }
         });
@@ -118,12 +131,12 @@ const _sfc_main = {
       if (this.socketTask && this.socketTask.readyState !== 3) {
         this.socketTask.close({
           success: () => {
-            common_vendor.index.__f__("log", "at pages/index/index.vue:169", "WebSocket 已关闭");
+            common_vendor.index.__f__("log", "at pages/index/index.vue:185", "WebSocket 已关闭");
             this.socketTask = null;
             this.isConnected = false;
           },
           fail: (err) => {
-            common_vendor.index.__f__("error", "at pages/index/index.vue:174", "关闭 WebSocket 失败", err);
+            common_vendor.index.__f__("error", "at pages/index/index.vue:190", "关闭 WebSocket 失败", err);
           }
         });
       }
@@ -134,15 +147,16 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return {
     a: common_assets._imports_0,
     b: common_vendor.t($data.title),
-    c: common_vendor.t($data.connectionStatus),
-    d: common_vendor.o((...args) => $options.connectWebSocket && $options.connectWebSocket(...args)),
-    e: $data.isConnected,
-    f: common_vendor.o((...args) => $options.sendWebSocket && $options.sendWebSocket(...args)),
-    g: !$data.isConnected,
-    h: common_vendor.o((...args) => $options.closeWebSocket && $options.closeWebSocket(...args)),
-    i: !$data.isConnected,
-    j: common_vendor.o((...args) => $options.cleardebug && $options.cleardebug(...args)),
-    k: common_vendor.f($data.messages, (msg, index, i0) => {
+    c: common_vendor.t($data.myDeviceId),
+    d: common_vendor.t($data.connectionStatus),
+    e: common_vendor.o((...args) => $options.connectWebSocket && $options.connectWebSocket(...args)),
+    f: $data.isConnected,
+    g: common_vendor.o((...args) => $options.sendWebSocket && $options.sendWebSocket(...args)),
+    h: !$data.isConnected,
+    i: common_vendor.o((...args) => $options.closeWebSocket && $options.closeWebSocket(...args)),
+    j: !$data.isConnected,
+    k: common_vendor.o((...args) => $options.cleardebug && $options.cleardebug(...args)),
+    l: common_vendor.f($data.messages, (msg, index, i0) => {
       return {
         a: common_vendor.t(msg),
         b: index

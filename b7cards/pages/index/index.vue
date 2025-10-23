@@ -2,8 +2,9 @@
 	<view class="content">
 		<image class="logo" src="/static/logo.png"></image>
 		<view class="text-area">
-			<text class="title">{{title}}</text>
+			<text class="title">{{title}} 当前设备分配id:{{myDeviceId}}</text>
 		</view>
+		
 		<view class="status">
 					<text>连接状态: {{connectionStatus}}</text>
 				</view>
@@ -41,7 +42,8 @@
 				messages: [],
 				reconnectTimer: null,
 				reconnectCount: 0,
-				maxReconnectCount: 5
+				maxReconnectCount: 5,
+				myDeviceId: null,
 			}
 		},
 		onLoad() {
@@ -87,10 +89,24 @@
 						// if (data.type === 'system') {
 						//       this.addMessage("单个广播" + data.content); // 显示系统消息
 						//     }
-					    this.addMessage( ` 服务器回复: ${data.content}`);
+						if(data.type === 'system' && data.deviceId) {
+							this.myDeviceId = data.deviceId
+						}
+					    // 显示消息时添加设备ID
+					      if (data.type === 'message') {
+					        let prefix = "";
+					        if (data.deviceId === this.myDeviceId) {
+					          prefix = "[我] ";
+					        } else {
+					          prefix = `[设备${data.deviceId}] `;
+					        }
+					        
+					        this.addMessage(prefix + data.content);
+					      }
 						
 
 					  } catch (e) {
+						console.log(e);
 					    this.addMessage( ` 服务器错误回复: ${res.data}`);
 					  }
 					});

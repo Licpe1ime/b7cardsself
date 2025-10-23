@@ -11,7 +11,11 @@ const websockify = require('koa-websocket');
 const app = websockify(new Koa());
 const index = require('./routes/index')
 const users = require('./routes/users')
+//-----------------------添加内容
+let deviceCounter = 1;
+const deviceMap = new Map();
 
+//--------------------------------
 
 // error handler
 onerror(app)
@@ -45,7 +49,22 @@ const clients = new Set();
 app.ws.use(async(ctx) => {
   console.log("websocket 连接已经建立");
   clients.add(ctx.websocket);
-  
+  //------------------------------------------------
+  const deviceIP = ctx.request.ip || ctx.socket.remoteAddress
+  const deviceId = deviceCounter++
+  // 存储设备信息
+  deviceMap.set(deviceId, {
+    ip: deviceIP,
+    connectedAt: new Date()
+  });
+  // 发送欢迎消息包含设备ID
+  ctx.websocket.send(JSON.stringify({
+    type: 'system',
+    content: `您的设备ID: ${deviceId}`,
+    deviceId
+  }));
+
+  //-------------------------------------------------
   
   // 监听客户端发送的消息
   ctx.websocket.on('message', (msg) => {
@@ -61,19 +80,18 @@ app.ws.use(async(ctx) => {
       const parsedMsg = JSON.parse(message);
       console.log('解析后的消息:', parsedMsg);
       const response = {
-        type: 'reply',
+        type: 'message',
         timestamp: Date.now(),
         content: `服务器已收到你的消息: ${parsedMsg.content}`,
+        deviceId,//添加设备id
         original: parsedMsg
       };
-      ctx.websocket.send(JSON.stringify(response));
+
+
+      //ctx.websocket.send(JSON.stringify(response));
       clients.forEach(client => {
       if (client.readyState === 1) {
-        client.send(JSON.stringify({
-        type: 'system',
-        content: '你好客户端',
-        timestamp: Date.now()
-      }));
+        client.send(JSON.stringify(response));
       }
     });
     }
@@ -87,6 +105,14 @@ app.ws.use(async(ctx) => {
     console.log('WebSocket 连接已关闭');
   });
 })
+//-----------------------------------
+setInterval(() => {
+  console.log("当前连接设备:");
+  deviceMap.forEach((info, id) => {
+    console.log(`ID: ${id} | IP: ${info.ip} | 连接时间: ${info.connectedAt.toLocaleTimeString()}`);
+  });
+}, 30000);
+//-----------------------------------
 // 错误处理
 app.on('error', (err, ctx) => {
   console.error('服务器错误', err, ctx);
