@@ -62,7 +62,9 @@
 					this.reconnectTimer = null;
 				}
 				// ----------------------------------------------------这里放着url
-				const socketUrl = 'ws://192.168.233.118:3001';
+				const deviceId = uni.getSystemInfoSync().deviceId || generateDeviceId();
+				const socketUrl = 'ws://192.168.233.118:3001?deviceId=' + deviceId;
+				console.log("当前设备持有url" + socketUrl);
 				this.socketTask = uni.connectSocket({
 					url:socketUrl,
 					
@@ -91,6 +93,7 @@
 						//     }
 						if(data.type === 'system' && data.deviceId) {
 							this.myDeviceId = data.deviceId
+							console.log("成功分配到id" + deviceId);
 						}
 					    // 显示消息时添加设备ID
 					      if (data.type === 'message') {
@@ -151,46 +154,58 @@
 			addMessage(msg){
 				this.messages.push(msg)
 			},
-			sendWebSocket(){
-				console.log("发送消息给websocket服务");
-				if (this.socketTask && this.isConnected) {
-					const message = {
-						type: 'message',
-						content: 'Hello WebSocket! ' + new Date().toLocaleTimeString(),
-						timestamp: Date.now()
-						};
+			// sendWebSocket(){
+			// 	console.log("发送消息给websocket服务");
+			// 	if (this.socketTask && this.isConnected) {
+			// 		const message = {
+			// 			type: 'message',
+			// 			content: 'Hello WebSocket! ' + new Date().toLocaleTimeString(),
+			// 			timestamp: Date.now()
+			// 			};
 									
-					this.socketTask.send({
-						data: JSON.stringify(message),
-						success: () => {
-							console.log('消息发送成功');
-							this.addMessage(' 发送成功: ' + JSON.stringify(message));
-							},
-						fail: (err) => {
-							console.error('消息发送失败:', err);
-							this.addMessage( ' 发送失败');
-							}
-						});
-						} else {
-						uni.showToast({
-							title: 'WebSocket未连接',
-								icon: 'none'
-								});
-								}
-			},
+			// 		this.socketTask.send({
+			// 			data: JSON.stringify(message),
+			// 			success: () => {
+			// 				console.log('消息发送成功');
+			// 				this.addMessage(' 发送成功: ' + JSON.stringify(message));
+			// 				},
+			// 			fail: (err) => {
+			// 				console.error('消息发送失败:', err);
+			// 				this.addMessage( ' 发送失败');
+			// 				}
+			// 			});
+			// 			} else {
+			// 			uni.showToast({
+			// 				title: 'WebSocket未连接',
+			// 					icon: 'none'
+			// 					});
+			// 					}
+			// },
 			closeWebSocket(url){
-				if (this.socketTask && this.socketTask.readyState !== 3) { // 3 = CLOSED
-				    this.socketTask.close({
-				      success: () => {
-				        console.log('WebSocket 已关闭');
-				        this.socketTask = null;
-						this.isConnected = false;
-				      },
-				      fail: (err) => {
-				        console.error('关闭 WebSocket 失败', err);
-				      }
-				    });
-				  }
+				if (this.socketTask) {
+				      // 发送关闭通知给服务器
+					
+				      //关闭WebSocket连接
+				      this.socketTask.close({
+						code: 1000, // 正常关闭代码
+						  reason: JSON.stringify({ // 将消息封装为 JSON 字符串
+						    type: 'close',
+						    reason: 'user_request',
+						    deviceId: this.myDeviceId
+						  }),
+
+				        success: () => {
+				          console.log('连接已关闭');
+				          this.socketTask = null;
+						  this.isConnected = false;
+				          this.addMessage('连接已关闭');
+				        },
+				        fail: (err) => {
+				          console.error('关闭连接失败', err);
+				          this.addMessage('关闭连接失败: ' + err.errMsg);
+				        }
+				      });
+				    }
 				
 			}
 		}

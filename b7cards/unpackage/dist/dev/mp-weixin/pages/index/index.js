@@ -29,29 +29,32 @@ const _sfc_main = {
         clearTimeout(this.reconnectTimer);
         this.reconnectTimer = null;
       }
-      const socketUrl = "ws://192.168.233.118:3001";
+      const deviceId = common_vendor.index.getSystemInfoSync().deviceId || generateDeviceId();
+      const socketUrl = "ws://192.168.233.118:3001?deviceId=" + deviceId;
+      common_vendor.index.__f__("log", "at pages/index/index.vue:67", "当前设备持有url" + socketUrl);
       this.socketTask = common_vendor.index.connectSocket({
         url: socketUrl,
         success: (ctx) => {
           this.connectionStatus = "连接中";
-          common_vendor.index.__f__("log", "at pages/index/index.vue:71", "连接成功");
+          common_vendor.index.__f__("log", "at pages/index/index.vue:73", "连接成功");
           this.isConnected = true;
           this.connectionStatus = "已连接";
-          common_vendor.index.__f__("log", "at pages/index/index.vue:74", JSON.stringify(ctx));
+          common_vendor.index.__f__("log", "at pages/index/index.vue:76", JSON.stringify(ctx));
         },
         fail: (err) => {
-          common_vendor.index.__f__("error", "at pages/index/index.vue:79", "WebSocket连接创建失败:", err);
+          common_vendor.index.__f__("error", "at pages/index/index.vue:81", "WebSocket连接创建失败:", err);
           this.connectionStatus = "连接失败";
           this.handleReconnect();
         }
       });
       this.socketTask.onOpen((res) => {
-        common_vendor.index.__f__("log", "at pages/index/index.vue:85", "连接已经打开");
+        common_vendor.index.__f__("log", "at pages/index/index.vue:87", "连接已经打开");
         this.socketTask.onMessage((res2) => {
           try {
             const data = JSON.parse(res2.data);
             if (data.type === "system" && data.deviceId) {
               this.myDeviceId = data.deviceId;
+              common_vendor.index.__f__("log", "at pages/index/index.vue:96", "成功分配到id" + deviceId);
             }
             if (data.type === "message") {
               let prefix = "";
@@ -63,7 +66,7 @@ const _sfc_main = {
               this.addMessage(prefix + data.content);
             }
           } catch (e) {
-            common_vendor.index.__f__("log", "at pages/index/index.vue:109", e);
+            common_vendor.index.__f__("log", "at pages/index/index.vue:112", e);
             this.addMessage(` 服务器错误回复: ${res2.data}`);
           }
         });
@@ -80,11 +83,11 @@ const _sfc_main = {
         this.socketTask.send({
           data: JSON.stringify(message),
           success: () => {
-            common_vendor.index.__f__("log", "at pages/index/index.vue:130", "消息发送成功");
+            common_vendor.index.__f__("log", "at pages/index/index.vue:133", "消息发送成功");
             this.addMessage(" 发送: " + JSON.stringify(message));
           },
           fail: (err) => {
-            common_vendor.index.__f__("error", "at pages/index/index.vue:136", "消息发送失败:", err);
+            common_vendor.index.__f__("error", "at pages/index/index.vue:139", "消息发送失败:", err);
             this.addMessage(" 发送失败");
           }
         });
@@ -96,47 +99,57 @@ const _sfc_main = {
       }
     },
     handleReconnect() {
-      common_vendor.index.__f__("log", "at pages/index/index.vue:149", "解决重连服务");
+      common_vendor.index.__f__("log", "at pages/index/index.vue:152", "解决重连服务");
     },
     addMessage(msg) {
       this.messages.push(msg);
     },
-    sendWebSocket() {
-      common_vendor.index.__f__("log", "at pages/index/index.vue:155", "发送消息给websocket服务");
-      if (this.socketTask && this.isConnected) {
-        const message = {
-          type: "message",
-          content: "Hello WebSocket! " + (/* @__PURE__ */ new Date()).toLocaleTimeString(),
-          timestamp: Date.now()
-        };
-        this.socketTask.send({
-          data: JSON.stringify(message),
-          success: () => {
-            common_vendor.index.__f__("log", "at pages/index/index.vue:166", "消息发送成功");
-            this.addMessage(" 发送成功: " + JSON.stringify(message));
-          },
-          fail: (err) => {
-            common_vendor.index.__f__("error", "at pages/index/index.vue:170", "消息发送失败:", err);
-            this.addMessage(" 发送失败");
-          }
-        });
-      } else {
-        common_vendor.index.showToast({
-          title: "WebSocket未连接",
-          icon: "none"
-        });
-      }
-    },
+    // sendWebSocket(){
+    // 	uni.__f__('log','at pages/index/index.vue:158',"发送消息给websocket服务");
+    // 	if (this.socketTask && this.isConnected) {
+    // 		const message = {
+    // 			type: 'message',
+    // 			content: 'Hello WebSocket! ' + new Date().toLocaleTimeString(),
+    // 			timestamp: Date.now()
+    // 			};
+    // 		this.socketTask.send({
+    // 			data: JSON.stringify(message),
+    // 			success: () => {
+    // 				uni.__f__('log','at pages/index/index.vue:169','消息发送成功');
+    // 				this.addMessage(' 发送成功: ' + JSON.stringify(message));
+    // 				},
+    // 			fail: (err) => {
+    // 				uni.__f__('error','at pages/index/index.vue:173','消息发送失败:', err);
+    // 				this.addMessage( ' 发送失败');
+    // 				}
+    // 			});
+    // 			} else {
+    // 			uni.showToast({
+    // 				title: 'WebSocket未连接',
+    // 					icon: 'none'
+    // 					});
+    // 					}
+    // },
     closeWebSocket(url) {
-      if (this.socketTask && this.socketTask.readyState !== 3) {
+      if (this.socketTask) {
         this.socketTask.close({
+          code: 1e3,
+          // 正常关闭代码
+          reason: JSON.stringify({
+            // 将消息封装为 JSON 字符串
+            type: "close",
+            reason: "user_request",
+            deviceId: this.myDeviceId
+          }),
           success: () => {
-            common_vendor.index.__f__("log", "at pages/index/index.vue:185", "WebSocket 已关闭");
+            common_vendor.index.__f__("log", "at pages/index/index.vue:198", "连接已关闭");
             this.socketTask = null;
             this.isConnected = false;
+            this.addMessage("连接已关闭");
           },
           fail: (err) => {
-            common_vendor.index.__f__("error", "at pages/index/index.vue:190", "关闭 WebSocket 失败", err);
+            common_vendor.index.__f__("error", "at pages/index/index.vue:204", "关闭连接失败", err);
+            this.addMessage("关闭连接失败: " + err.errMsg);
           }
         });
       }
