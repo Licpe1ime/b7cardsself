@@ -30,7 +30,7 @@ const _sfc_main = {
         this.reconnectTimer = null;
       }
       const deviceId = common_vendor.index.getSystemInfoSync().deviceId || generateDeviceId();
-      const socketUrl = "ws://192.168.233.118:3001?deviceId=" + deviceId;
+      const socketUrl = "ws://192.168.43.16:3001?deviceId=" + deviceId;
       common_vendor.index.__f__("log", "at pages/index/index.vue:67", "当前设备持有url" + socketUrl);
       this.socketTask = common_vendor.index.connectSocket({
         url: socketUrl,

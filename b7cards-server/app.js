@@ -108,18 +108,22 @@ app.ws.use(async(ctx) => {
   
   // 监听客户端发送的消息
   ctx.websocket.on("close",(code,reason) =>{
+  
     console.log("识别到关闭请求");
     console.log('原始 reason:', typeof reason, reason); // 检查是否为字符串
-    let reasonStr;
+
+  try {
+      let reasonStr;
     if (Buffer.isBuffer(reason)) {
-    reasonStr = reason.toString('utf8'); // 二进制转字符串
+    reasonStr = reason.toString('utf8');
+    console.log("reason1: " + reasonStr);// 二进制转字符串
   } else if (typeof reason === 'string') {
     reasonStr = reason;
+    console.log("reason2: " + reasonStr);
   } else {
     console.log('未知的 reason 类型:', typeof reason, reason);
     return;
   }
-    try {
     const closeData = JSON.parse(reasonStr); // 解析 reason
     if (closeData.type === 'close' && closeData.deviceId) {
       console.log(`设备 ${closeData.deviceId} 主动退出，原因: ${closeData.reason}`);
@@ -130,7 +134,7 @@ app.ws.use(async(ctx) => {
       
     }
   } catch (err) {
-    console.log('普通关闭，未携带额外信息', reason);
+    console.log('普通关闭，未携带额外信息', err);
   }
   })
 
