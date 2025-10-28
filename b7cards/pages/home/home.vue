@@ -3,6 +3,49 @@
 	<button @click="SynInformation" :disabled = "!canbutton"> 同步信息 </button>
 	<button @click="gameStart" :disabled = "!isConnected && !canbutton"> 开始游戏 </button>
     
+    <!-- 出牌权显示 -->
+    <view class="turn-section" v-if="gameStatus === 'playing' && currentPlayer">
+      <view :class="['turn-indicator', isYourTurn ? 'your-turn' : 'other-turn']">
+        <text v-if="isYourTurn" class="turn-text">🎮 轮到您出牌</text>
+        <text v-else class="turn-text">⏳ 轮到玩家 {{ currentPlayer }} 出牌</text>
+      </view>
+    </view>
+    
+    <!-- 牌堆显示 -->
+    <view class="piles-section" v-if="gamePiles">
+      <h3>牌堆</h3>
+      <view class="piles-container">
+        <view v-for="(pile, suit) in gamePiles" :key="suit" class="pile-item">
+          <view :class="['pile', 'pile-' + suit]">
+            <text class="pile-suit">{{ getSuitSymbol(suit) }}</text>
+            <text class="pile-count">{{ pile.count }}张</text>
+            
+            <!-- 显示完整的牌堆序列 -->
+            <view class="pile-cards" v-if="pile.cards && pile.cards.length > 0">
+              <view class="pile-sequence">
+                <text class="pile-sequence-label">牌堆序列:</text>
+                <view class="card-sequence">
+                  <text 
+                    v-for="(entry, index) in pile.cards" 
+                    :key="index"
+                    :class="['sequence-card', entry.card.rank === '7' ? 'seven-card' : '']"
+                  >
+                    {{ entry.card.rank }}{{ getSuitSymbol(entry.card.suit) }}
+                    <span v-if="index < pile.cards.length - 1">→</span>
+                  </text>
+                </view>
+              </view>
+            </view>
+            
+            <text v-else class="pile-empty">空</text>
+            <text v-if="pile.playedBy" class="pile-player">
+              最后出牌: {{ pile.playedBy }}
+            </text>
+          </view>
+        </view>
+      </view>
+    </view>
+    
     <!-- 玩家列表 -->
     <view class="player-section">
       <h3>在线玩家 ({{ playerlist.length }})</h3>
@@ -65,7 +108,15 @@ export default {
 			playerlist:[],
 			playerCards: [],
 			selectedCard: null, // 选中的单张牌
-			gameStatus: 'waiting' // waiting, playing, ended
+			gameStatus: 'waiting', // waiting, playing, ended
+			gamePiles: {
+				hearts: { suit: 'hearts', count: 0, topCard: null, playedBy: null, cards: [] },
+				spades: { suit: 'spades', count: 0, topCard: null, playedBy: null, cards: [] },
+				diamonds: { suit: 'diamonds', count: 0, topCard: null, playedBy: null, cards: [] },
+				clubs: { suit: 'clubs', count: 0, topCard: null, playedBy: null, cards: [] }
+			},
+			currentPlayer: null, // 当前出牌玩家
+			isYourTurn: false // 是否轮到当前玩家出牌
 		}
 	},
   onLoad(){
@@ -102,9 +153,63 @@ export default {
 				this.playerCards = messageData.content.playerCards || [];
 				this.gameStatus = 'playing';
 				this.selectedCard = null;
+				// 初始化牌堆
+				this.gamePiles = {
+					hearts: { suit: 'hearts', count: 0, topCard: null, playedBy: null, cards: [] },
+					spades: { suit: 'spades', count: 0, topCard: null, playedBy: null, cards: [] },
+					diamonds: { suit: 'diamonds', count: 0, topCard: null, playedBy: null, cards: [] },
+					clubs: { suit: 'clubs', count: 0, topCard: null, playedBy: null, cards: [] }
+				};
+				// 设置当前出牌玩家
+				this.currentPlayer = messageData.content.currentPlayer;
+				this.isYourTurn = messageData.content.isYourTurn;
+				
 				uni.showToast({
 					title: `游戏开始！获得${this.playerCards.length}张牌`,
 					icon: 'success',
+					duration: 2000
+				});
+			}
+			
+			// 处理牌堆更新消息
+			if(messageData.type == "pileUpdate"){
+				console.log("收到牌堆更新消息:", messageData.content);
+				this.gamePiles = messageData.content.pileInfo;
+				
+				// 更新当前出牌玩家
+				if(messageData.content.currentPlayer) {
+					this.currentPlayer = messageData.content.currentPlayer;
+					this.isYourTurn = this.currentPlayer === app.globalData.diviceid;
+				}
+				
+				// 更新玩家手牌数量
+				if(messageData.content.remainingCards !== undefined) {
+					// 如果是当前玩家的出牌，更新手牌
+					if(messageData.content.playedBy === app.globalData.diviceid) {
+						this.playerCards = this.playerCards.filter(card => 
+							card.id !== messageData.content.playedCard.id
+						);
+						this.selectedCard = null;
+					}
+				}
+			}
+			
+			// 处理出牌成功消息
+			if(messageData.type == "playCardSuccess"){
+				console.log("出牌成功:", messageData.content);
+				uni.showToast({
+					title: messageData.content,
+					icon: 'success',
+					duration: 2000
+				});
+			}
+			
+			// 处理出牌失败消息
+			if(messageData.type == "playCardFail"){
+				console.log("出牌失败:", messageData.content);
+				uni.showToast({
+					title: messageData.content,
+					icon: 'error',
 					duration: 2000
 				});
 			}
@@ -220,33 +325,21 @@ export default {
       const message = {
         type: 'playCard',
         playerid: app.globalData.diviceid,
-        card: this.selectedCard
+        card: this.selectedCard,
+		
       };
       
       app.globalData.socketTask.send({
         data: JSON.stringify(message),
         success: () => {
-          console.log('出牌成功');
-          // 从手牌中移除已出的牌
-          this.playerCards = this.playerCards.filter(card => 
-            card.id !== this.selectedCard.id
-          );
-          this.selectedCard = null;
-          
-          // 检查是否获胜
-          if (this.playerCards.length === 0) {
-            this.gameStatus = 'ended';
-            uni.showToast({
-              title: '恭喜你获胜！',
-              icon: 'success',
-              duration: 3000
-            });
-          }
+          console.log('出牌请求发送成功，等待服务器验证');
+          // 不再立即移除手牌，等待服务器确认
+          // 手牌移除和牌堆更新将在收到服务器确认消息后处理
         },
         fail: (err) => {
-          console.error('出牌失败:', err);
+          console.error('出牌请求发送失败:', err);
           uni.showToast({
-            title: '出牌失败',
+            title: '出牌请求发送失败',
             icon: 'none',
             duration: 2000
           });
@@ -409,6 +502,173 @@ export default {
   padding: 8px 16px;
   border-radius: 4px;
   font-size: 14px;
+}
+
+/* 出牌权显示样式 */
+.turn-section {
+  margin: 20px 0;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.turn-indicator {
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.your-turn {
+  background-color: #4CAF50;
+  color: white;
+  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+  animation: pulse 2s infinite;
+}
+
+.other-turn {
+  background-color: #ff9800;
+  color: white;
+  box-shadow: 0 2px 4px rgba(255, 152, 0, 0.3);
+}
+
+.turn-text {
+  font-size: 16px;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* 牌堆样式 */
+.piles-section {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #f0f8ff;
+  border-radius: 8px;
+  border: 1px solid #007AFF;
+}
+
+.piles-section h3 {
+  margin-bottom: 15px;
+  color: #007AFF;
+}
+
+.piles-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+.pile-item {
+  display: flex;
+  justify-content: center;
+}
+
+.pile {
+  width: 120px;
+  height: 100px;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+}
+
+.pile-hearts {
+  border-color: #e74c3c;
+  background-color: #ffeaea;
+}
+
+.pile-diamonds {
+  border-color: #e74c3c;
+  background-color: #ffeaea;
+}
+
+.pile-spades {
+  border-color: #2c3e50;
+  background-color: #f0f0f0;
+}
+
+.pile-clubs {
+  border-color: #2c3e50;
+  background-color: #f0f0f0;
+}
+
+.pile-suit {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.pile-count {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 3px;
+}
+
+.pile-top-card {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 3px;
+}
+
+.pile-empty {
+  font-size: 12px;
+  color: #999;
+  font-style: italic;
+}
+
+.pile-player {
+  font-size: 10px;
+  color: #888;
+  text-align: center;
+}
+
+/* 牌堆序列样式 */
+.pile-cards {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.pile-sequence {
+  text-align: center;
+}
+
+.pile-sequence-label {
+  font-size: 10px;
+  color: #666;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.card-sequence {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
+  font-size: 10px;
+}
+
+.sequence-card {
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 1px 3px;
+  border-radius: 2px;
+  border: 1px solid #ddd;
+}
+
+.seven-card {
+  background-color: #ffeb3b;
+  font-weight: bold;
+  border-color: #ff9800;
 }
 
 ul {

@@ -125,6 +125,153 @@
   border-radius: 4px;
   font-size: 14px;
 }
+
+/* 出牌权显示样式 */
+.turn-section {
+  margin: 20px 0;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+}
+.turn-indicator {
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+.your-turn {
+  background-color: #4CAF50;
+  color: white;
+  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+  animation: pulse 2s infinite;
+}
+.other-turn {
+  background-color: #ff9800;
+  color: white;
+  box-shadow: 0 2px 4px rgba(255, 152, 0, 0.3);
+}
+.turn-text {
+  font-size: 16px;
+}
+@keyframes pulse {
+0% { transform: scale(1);
+}
+50% { transform: scale(1.05);
+}
+100% { transform: scale(1);
+}
+}
+
+/* 牌堆样式 */
+.piles-section {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #f0f8ff;
+  border-radius: 8px;
+  border: 1px solid #007AFF;
+}
+.piles-section h3 {
+  margin-bottom: 15px;
+  color: #007AFF;
+}
+.piles-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+.pile-item {
+  display: flex;
+  justify-content: center;
+}
+.pile {
+  width: 120px;
+  height: 100px;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+}
+.pile-hearts {
+  border-color: #e74c3c;
+  background-color: #ffeaea;
+}
+.pile-diamonds {
+  border-color: #e74c3c;
+  background-color: #ffeaea;
+}
+.pile-spades {
+  border-color: #2c3e50;
+  background-color: #f0f0f0;
+}
+.pile-clubs {
+  border-color: #2c3e50;
+  background-color: #f0f0f0;
+}
+.pile-suit {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+.pile-count {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 3px;
+}
+.pile-top-card {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 3px;
+}
+.pile-empty {
+  font-size: 12px;
+  color: #999;
+  font-style: italic;
+}
+.pile-player {
+  font-size: 10px;
+  color: #888;
+  text-align: center;
+}
+
+/* 牌堆序列样式 */
+.pile-cards {
+  margin-top: 8px;
+  width: 100%;
+}
+.pile-sequence {
+  text-align: center;
+}
+.pile-sequence-label {
+  font-size: 10px;
+  color: #666;
+  display: block;
+  margin-bottom: 3px;
+}
+.card-sequence {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
+  font-size: 10px;
+}
+.sequence-card {
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 1px 3px;
+  border-radius: 2px;
+  border: 1px solid #ddd;
+}
+.seven-card {
+  background-color: #ffeb3b;
+  font-weight: bold;
+  border-color: #ff9800;
+}
 ul {
   list-style-type: none;
   padding: 0;

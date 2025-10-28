@@ -25,6 +25,167 @@ function getCardValue(rank) {
     default: return parseInt(rank);
   }
 }
+
+// 获取花色符号的辅助函数
+function getSuitSymbol(suit) {
+  switch(suit) {
+    case 'hearts': return '♥';
+    case 'spades': return '♠';
+    case 'clubs': return '♣';
+    case 'diamonds': return '♦';
+    default: return suit;
+  }
+}
+
+// 初始化牌堆（憋七游戏开始时，牌堆为空）
+function initializePiles() {
+  // 清空所有牌堆
+  Object.keys(gamePiles).forEach(suit => {
+    gamePiles[suit] = [];
+  });
+  
+  console.log('牌堆初始化完成（空牌堆）');
+}
+
+// 检查玩家是否有7
+function hasSevenInHand(playerId) {
+  const hand = playerHands.get(playerId) || [];
+  return hand.some(card => card.rank === '7');
+}
+
+// 检查是否可以出牌到指定牌堆（憋七规则）
+function canPlayToPile(card, suit, playerId) {
+  const pile = gamePiles[suit];
+  
+  // 检查花色是否匹配
+  if (card.suit !== suit) {
+    return false;
+  }
+  
+  // 如果玩家手中有7，必须先出7
+  if (hasSevenInHand(playerId) && card.rank !== '7') {
+    return false;
+  }
+  
+  if (pile.length === 0) {
+    // 如果牌堆为空，只能出7
+    return card.rank === '7';
+  }
+  
+  // 获取牌堆的队尾（最上面的牌）和队头（最下面的牌）
+  const tailCard = pile[pile.length - 1].card;
+  const headCard = pile[0].card;
+  
+  const cardValue = card.value;
+  const tailCardValue = tailCard.value;
+  const headCardValue = headCard.value;
+  
+  // 检查是否可以接在队尾（向上接龙）
+  const canPlayToTail = Math.abs(cardValue - tailCardValue) === 1;
+  
+  // 检查是否可以接在队头（向下接龙）
+  const canPlayToHead = Math.abs(cardValue - headCardValue) === 1;
+  
+  console.log(`出牌检查: ${card.rank}${getSuitSymbol(card.suit)} -> 队尾${tailCard.rank}${getSuitSymbol(tailCard.suit)}(${tailCardValue}) 队头${headCard.rank}${getSuitSymbol(headCard.suit)}(${headCardValue}), 尾插: ${canPlayToTail}, 头插: ${canPlayToHead}`);
+  
+  // 只要能在队尾或队头接龙就可以出牌
+  return canPlayToTail || canPlayToHead;
+}
+
+// 出牌到牌堆
+function playCardToPile(card, suit, playerId) {
+  const pile = gamePiles[suit];
+  
+  if (pile.length === 0) {
+    // 空牌堆，直接添加
+    gamePiles[suit].push({
+      card: card,
+      playedBy: playerId,
+      timestamp: Date.now(),
+      pileIndex: 0
+    });
+    return true;
+  }
+  
+  // 获取牌堆的队尾和队头
+  const tailCard = pile[pile.length - 1].card;
+  const headCard = pile[0].card;
+  
+  const cardValue = card.value;
+  const tailCardValue = tailCard.value;
+  const headCardValue = headCard.value;
+  
+  // 检查是否可以接在队尾（向上接龙）
+  const canPlayToTail = Math.abs(cardValue - tailCardValue) === 1;
+  
+  // 检查是否可以接在队头（向下接龙）
+  const canPlayToHead = Math.abs(cardValue - headCardValue) === 1;
+  
+  if (!canPlayToTail && !canPlayToHead) {
+    return false;
+  }
+  
+  if (canPlayToTail) {
+    // 尾插：添加到牌堆末尾
+    gamePiles[suit].push({
+      card: card,
+      playedBy: playerId,
+      timestamp: Date.now(),
+      pileIndex: pile.length
+    });
+    console.log(`尾插成功: ${card.rank}${getSuitSymbol(card.suit)} -> 队尾${tailCard.rank}${getSuitSymbol(tailCard.suit)}`);
+  } else if (canPlayToHead) {
+    // 头插：添加到牌堆开头
+    gamePiles[suit].unshift({
+      card: card,
+      playedBy: playerId,
+      timestamp: Date.now(),
+      pileIndex: 0
+    });
+    
+    // 更新后续牌的索引
+    for (let i = 1; i < gamePiles[suit].length; i++) {
+      gamePiles[suit][i].pileIndex = i;
+    }
+    console.log(`头插成功: ${card.rank}${getSuitSymbol(card.suit)} -> 队头${headCard.rank}${getSuitSymbol(headCard.suit)}`);
+  }
+  
+  // 从玩家手牌中移除这张牌
+  const hand = playerHands.get(playerId) || [];
+  const cardIndex = hand.findIndex(c => c.id === card.id);
+  if (cardIndex > -1) {
+    hand.splice(cardIndex, 1);
+    playerHands.set(playerId, hand);
+  }
+  
+  return true;
+}
+
+// 获取牌堆信息
+function getPileInfo(suit) {
+  const pile = gamePiles[suit];
+  return {
+    suit: suit,
+    count: pile.length,
+    topCard: pile.length > 0 ? pile[pile.length - 1].card : null,
+    playedBy: pile.length > 0 ? pile[pile.length - 1].playedBy : null,
+    cards: pile.map(entry => ({
+      card: entry.card,
+      playedBy: entry.playedBy,
+      timestamp: entry.timestamp
+    }))
+  };
+}
+
+// 获取所有牌堆信息
+function getAllPilesInfo() {
+  return {
+    hearts: getPileInfo('hearts'),
+    spades: getPileInfo('spades'),
+    diamonds: getPileInfo('diamonds'),
+    clubs: getPileInfo('clubs')
+  };
+}
 //--------------------------------
 
 // error handler
@@ -56,6 +217,22 @@ app.use(index.routes(), index.allowedMethods())
 app.use(users.routes(), users.allowedMethods())
 //web-socker routes
 const clients = new Map();
+
+// 四个牌堆的数据结构
+const gamePiles = {
+  hearts: [],    // 红心牌堆
+  spades: [],    // 黑桃牌堆
+  diamonds: [],  // 方块牌堆
+  clubs: []      // 梅花牌堆
+};
+
+// 存储玩家手牌信息
+const playerHands = new Map();
+
+// 出牌权轮换相关变量
+let currentPlayerIndex = 0;
+let playerOrder = [];
+let gameStarted = false;
 app.ws.use(async(ctx) => {
   console.log("websocket 连接已经建立");
   try{
@@ -200,6 +377,12 @@ app.ws.use(async(ctx) => {
         else{
           let members = clients.size;
           
+          // 初始化出牌权轮换
+          playerOrder = Array.from(clients.keys());
+          // 随机决定起始玩家
+          currentPlayerIndex = Math.floor(Math.random() * playerOrder.length);
+          gameStarted = true;
+          
           // 创建一副52张扑克牌
           const suits = ['hearts', 'spades', 'clubs', 'diamonds']; // 红心、黑桃、梅花、方块
           const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -251,6 +434,8 @@ app.ws.use(async(ctx) => {
             }
             
             playerCards.set(deviceId, playerDeck);
+            // 存储玩家手牌
+            playerHands.set(deviceId, playerDeck);
             
             // 发送牌给玩家
             let gameStartMsg = JSON.stringify({
@@ -258,7 +443,10 @@ app.ws.use(async(ctx) => {
               content: {
                 playerCards: playerDeck,
                 totalPlayers: members,
-                cardsCount: playerDeck.length
+                cardsCount: playerDeck.length,
+                hasSeven: playerDeck.some(card => card.rank === '7'),
+                currentPlayer: playerOrder[currentPlayerIndex],
+                isYourTurn: deviceId === playerOrder[currentPlayerIndex]
               },
               deviceId: deviceId
             });
@@ -266,6 +454,104 @@ app.ws.use(async(ctx) => {
           });
           
           console.log(`游戏开始，${members}名玩家，每人${cardsPerPlayer}张牌`);
+          // 初始化牌堆
+          initializePiles();
+        }
+      }
+      //-----------------处理出牌消息
+      if(parsedMsg.type === 'playCard'){
+        const playerId = parsedMsg.playerid;
+        const card = parsedMsg.card;
+        
+        console.log(`玩家 ${playerId} 尝试出牌: ${card.suit}_${card.rank}`);
+        
+        // 检查玩家是否有这张牌
+        if (!clients.has(playerId)) {
+          console.log(`玩家 ${playerId} 不存在`);
+          return;
+        }
+        
+        // 检查出牌权
+        if (gameStarted && playerOrder[currentPlayerIndex] !== playerId) {
+          console.log(`玩家 ${playerId} 没有出牌权，当前轮到 ${playerOrder[currentPlayerIndex]}`);
+          
+          // 发送失败消息
+          const failMsg = JSON.stringify({
+            type: 'playCardFail',
+            content: `出牌失败: 现在轮到玩家 ${playerOrder[currentPlayerIndex]} 出牌`
+          });
+          clients.get(playerId).send(failMsg);
+          return;
+        }
+        
+        // 检查玩家手牌中是否有这张牌
+        const playerHand = playerHands.get(playerId) || [];
+        const hasCard = playerHand.some(c => c.id === card.id);
+        if (!hasCard) {
+          console.log(`玩家 ${playerId} 没有这张牌`);
+          
+          // 发送失败消息
+          const failMsg = JSON.stringify({
+            type: 'playCardFail',
+            content: `出牌失败: 你没有这张牌`
+          });
+          clients.get(playerId).send(failMsg);
+          return;
+        }
+        
+        // 尝试出牌到对应花色的牌堆
+        const success = playCardToPile(card, card.suit, playerId);
+        
+        if (success) {
+          console.log(`出牌成功: ${card.suit}_${card.rank} 到 ${card.suit}牌堆`);
+          
+          // 轮换出牌权
+          currentPlayerIndex = (currentPlayerIndex + 1) % playerOrder.length;
+          const nextPlayer = playerOrder[currentPlayerIndex];
+          
+          // 广播牌堆更新信息给所有玩家
+          const pileUpdateMsg = JSON.stringify({
+            type: 'pileUpdate',
+            content: {
+              pileInfo: getAllPilesInfo(),
+              playedCard: card,
+              playedBy: playerId,
+              remainingCards: playerHands.get(playerId).length,
+              currentPlayer: nextPlayer
+            }
+          });
+          
+          clients.forEach((socket, deviceId) => {
+            if (socket.readyState === 1) {
+              socket.send(pileUpdateMsg);
+            }
+          });
+          
+          // 发送成功消息给出牌玩家
+          const successMsg = JSON.stringify({
+            type: 'playCardSuccess',
+            content: `出牌成功: ${card.rank}${getSuitSymbol(card.suit)}`,
+            hasSeven: hasSevenInHand(playerId), // 告知玩家是否还有7
+            nextPlayer: nextPlayer
+          });
+          clients.get(playerId).send(successMsg);
+          
+        } else {
+          console.log(`出牌失败: ${card.suit}_${card.rank} 不符合规则`);
+          
+          // 检查失败原因
+          let failReason = '不符合出牌规则';
+          if (hasSevenInHand(playerId) && card.rank !== '7') {
+            failReason = '你手中有7，必须先出7';
+          }
+          
+          // 发送失败消息给出牌玩家
+          const failMsg = JSON.stringify({
+            type: 'playCardFail',
+            content: `出牌失败: ${card.rank}${getSuitSymbol(card.suit)} ${failReason}`,
+            hasSeven: hasSevenInHand(playerId)
+          });
+          clients.get(playerId).send(failMsg);
         }
       }
     }
