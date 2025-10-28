@@ -16,11 +16,34 @@
     <!-- 玩家手牌 -->
     <view class="cards-section" v-if="playerCards.length > 0">
       <h3>你的手牌 ({{ playerCards.length }}张)</h3>
+      
+      <!-- 选中的牌 -->
+      <view class="selected-section" v-if="selectedCard">
+        <h4>已选牌</h4>
+        <view class="selected-cards">
+          <view class="card-item">
+            <view :class="['card', 'card-' + selectedCard.suit, 'selected']">
+              <text class="card-rank">{{ selectedCard.rank }}</text>
+              <text class="card-suit">{{ getSuitSymbol(selectedCard.suit) }}</text>
+            </view>
+          </view>
+        </view>
+        <view class="action-buttons">
+          <button @click="playCard" class="play-btn">出牌</button>
+          <button @click="clearSelection" class="clear-btn">取消选择</button>
+        </view>
+      </view>
+      
+      <!-- 所有手牌 -->
       <view class="cards-container">
         <view v-for="(card, index) in playerCards" :key="index" class="card-item">
-          <view :class="['card', 'card-' + card.suit]">
+          <view 
+            :class="['card', 'card-' + card.suit, selectedCard && selectedCard.id === card.id ? 'selected' : '']"
+            @click="selectCard(card)"
+          >
             <text class="card-rank">{{ card.rank }}</text>
             <text class="card-suit">{{ getSuitSymbol(card.suit) }}</text>
+            <text v-if="selectedCard && selectedCard.id === card.id" class="selected-mark">✓</text>
           </view>
         </view>
       </view>
@@ -40,7 +63,9 @@ export default {
 			canbutton : false,
 			isConnected : false ,
 			playerlist:[],
-			playerCards: []
+			playerCards: [],
+			selectedCard: null, // 选中的单张牌
+			gameStatus: 'waiting' // waiting, playing, ended
 		}
 	},
   onLoad(){
@@ -75,6 +100,8 @@ export default {
 			if(messageData.type == "gameStartRes"){
 				console.log("收到游戏开始响应，手牌信息:", messageData.content);
 				this.playerCards = messageData.content.playerCards || [];
+				this.gameStatus = 'playing';
+				this.selectedCard = null;
 				uni.showToast({
 					title: `游戏开始！获得${this.playerCards.length}张牌`,
 					icon: 'success',
@@ -161,6 +188,70 @@ export default {
         case 'diamonds': return '♦';
         default: return suit;
       }
+    },
+    // 选择单张牌
+    selectCard(card) {
+      if (this.selectedCard && this.selectedCard.id === card.id) {
+        // 如果点击的是已选中的牌，则取消选择
+        this.selectedCard = null;
+      } else {
+        // 选择新的牌
+        this.selectedCard = card;
+      }
+    },
+    // 取消选择
+    clearSelection() {
+      this.selectedCard = null;
+    },
+    // 出牌
+    playCard() {
+      if (!this.selectedCard) {
+        uni.showToast({
+          title: '请先选择要出的牌',
+          icon: 'none',
+          duration: 2000
+        });
+        return;
+      }
+      
+      console.log('出牌:', this.selectedCard);
+      
+      // 发送出牌消息到服务器
+      const message = {
+        type: 'playCard',
+        playerid: app.globalData.diviceid,
+        card: this.selectedCard
+      };
+      
+      app.globalData.socketTask.send({
+        data: JSON.stringify(message),
+        success: () => {
+          console.log('出牌成功');
+          // 从手牌中移除已出的牌
+          this.playerCards = this.playerCards.filter(card => 
+            card.id !== this.selectedCard.id
+          );
+          this.selectedCard = null;
+          
+          // 检查是否获胜
+          if (this.playerCards.length === 0) {
+            this.gameStatus = 'ended';
+            uni.showToast({
+              title: '恭喜你获胜！',
+              icon: 'success',
+              duration: 3000
+            });
+          }
+        },
+        fail: (err) => {
+          console.error('出牌失败:', err);
+          uni.showToast({
+            title: '出牌失败',
+            icon: 'none',
+            duration: 2000
+          });
+        }
+      });
     }
     // goToTest() {
     //   uni.navigateTo({
@@ -227,6 +318,15 @@ export default {
   align-items: center;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.card.selected {
+  border: 2px solid #007AFF;
+  background-color: #f0f8ff;
+  transform: translateY(-5px);
+  box-shadow: 0 4px 8px rgba(0,122,255,0.3);
 }
 
 .card-hearts {
@@ -257,6 +357,58 @@ export default {
 .card-suit {
   font-size: 20px;
   margin-top: 5px;
+}
+
+.selected-mark {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  color: #007AFF;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.selected-section {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #e8f4fd;
+  border-radius: 8px;
+  border: 1px solid #007AFF;
+}
+
+.selected-section h4 {
+  margin-bottom: 10px;
+  color: #007AFF;
+}
+
+.selected-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.play-btn {
+  background-color: #007AFF;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.clear-btn {
+  background-color: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
 }
 
 ul {

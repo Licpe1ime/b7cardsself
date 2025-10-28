@@ -47,6 +47,14 @@
   align-items: center;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.card.selected {
+  border: 2px solid #007AFF;
+  background-color: #f0f8ff;
+  transform: translateY(-5px);
+  box-shadow: 0 4px 8px rgba(0,122,255,0.3);
 }
 .card-hearts {
   color: #e74c3c;
@@ -71,6 +79,51 @@
 .card-suit {
   font-size: 20px;
   margin-top: 5px;
+}
+.selected-mark {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  color: #007AFF;
+  font-weight: bold;
+  font-size: 12px;
+}
+.selected-section {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #e8f4fd;
+  border-radius: 8px;
+  border: 1px solid #007AFF;
+}
+.selected-section h4 {
+  margin-bottom: 10px;
+  color: #007AFF;
+}
+.selected-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+.action-buttons {
+  display: flex;
+  gap: 10px;
+}
+.play-btn {
+  background-color: #007AFF;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.clear-btn {
+  background-color: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
 }
 ul {
   list-style-type: none;
