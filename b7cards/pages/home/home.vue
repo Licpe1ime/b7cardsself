@@ -75,6 +75,16 @@
           <button @click="playCard" class="play-btn">出牌</button>
           <button @click="clearSelection" class="clear-btn">取消选择</button>
         </view>
+        
+        <!-- Pass按钮 -->
+        <view class="pass-section" v-if="isYourTurn && gameStatus === 'playing'">
+          <button @click="passTurn" class="pass-btn" :disabled="!canPass">
+            Pass
+          </button>
+          <text v-if="!canPass" class="pass-hint">
+            {{ passHint }}
+          </text>
+        </view>
       </view>
       
       <!-- 所有手牌 -->
@@ -116,7 +126,9 @@ export default {
 				clubs: { suit: 'clubs', count: 0, topCard: null, playedBy: null, cards: [] }
 			},
 			currentPlayer: null, // 当前出牌玩家
-			isYourTurn: false // 是否轮到当前玩家出牌
+			isYourTurn: false, // 是否轮到当前玩家出牌
+			canPass: false, // 是否可以pass
+			passHint: '' // pass提示信息
 		}
 	},
   onLoad(){
@@ -163,6 +175,8 @@ export default {
 				// 设置当前出牌玩家
 				this.currentPlayer = messageData.content.currentPlayer;
 				this.isYourTurn = messageData.content.isYourTurn;
+				// 检查是否可以Pass
+				this.checkCanPass();
 				
 				uni.showToast({
 					title: `游戏开始！获得${this.playerCards.length}张牌`,
@@ -180,6 +194,8 @@ export default {
 				if(messageData.content.currentPlayer) {
 					this.currentPlayer = messageData.content.currentPlayer;
 					this.isYourTurn = this.currentPlayer === app.globalData.diviceid;
+					// 检查是否可以Pass
+					this.checkCanPass();
 				}
 				
 				// 更新玩家手牌数量
@@ -207,6 +223,35 @@ export default {
 			// 处理出牌失败消息
 			if(messageData.type == "playCardFail"){
 				console.log("出牌失败:", messageData.content);
+				uni.showToast({
+					title: messageData.content,
+					icon: 'error',
+					duration: 2000
+				});
+			}
+			
+			// 处理Pass成功消息
+			if(messageData.type == "passSuccess"){
+				console.log("Pass成功:", messageData.content);
+				
+				// 更新当前出牌玩家
+				if(messageData.content.nextPlayer) {
+					this.currentPlayer = messageData.content.nextPlayer;
+					this.isYourTurn = this.currentPlayer === app.globalData.diviceid;
+					// 检查是否可以Pass
+					this.checkCanPass();
+				}
+				
+				uni.showToast({
+					title: messageData.content.message,
+					icon: 'success',
+					duration: 2000
+				});
+			}
+			
+			// 处理Pass失败消息
+			if(messageData.type == "passFail"){
+				console.log("Pass失败:", messageData.content);
 				uni.showToast({
 					title: messageData.content,
 					icon: 'error',
@@ -345,6 +390,120 @@ export default {
           });
         }
       });
+    },
+    
+    // Pass操作
+    passTurn() {
+      if (!this.isYourTurn) {
+        uni.showToast({
+          title: '现在不是你的回合',
+          icon: 'none',
+          duration: 2000
+        });
+        return;
+      }
+      
+      console.log('玩家选择Pass');
+      
+      // 发送Pass消息到服务器
+      const message = {
+        type: 'passTurn',
+        playerid: app.globalData.diviceid
+      };
+      
+      app.globalData.socketTask.send({
+        data: JSON.stringify(message),
+        success: () => {
+          console.log('Pass请求发送成功');
+        },
+        fail: (err) => {
+          console.error('Pass请求发送失败:', err);
+          uni.showToast({
+            title: 'Pass请求发送失败',
+            icon: 'none',
+            duration: 2000
+          });
+        }
+      });
+    },
+    
+    // 检查是否可以Pass
+    checkCanPass() {
+      if (!this.isYourTurn || this.gameStatus !== 'playing') {
+        this.canPass = false;
+        this.passHint = '';
+        return;
+      }
+      
+      // 检查是否有7在手牌中
+      const hasSeven = this.playerCards.some(card => card.rank === '7');
+      
+      // 检查是否有可以出的牌
+      const canPlayAnyCard = this.checkCanPlayAnyCard();
+      
+      if (hasSeven) {
+        // 有7在手牌中，不能Pass
+        this.canPass = false;
+        this.passHint = '手中有7，必须先出7';
+      } else if (canPlayAnyCard) {
+        // 有可以出的牌，可以Pass但提示
+        this.canPass = true;
+        this.passHint = '有牌可出，确定要Pass吗？';
+      } else {
+        // 没有可以出的牌，可以Pass
+        this.canPass = true;
+        this.passHint = '没有可以出的牌';
+      }
+    },
+    
+    // 检查是否有可以出的牌
+    checkCanPlayAnyCard() {
+      for (const card of this.playerCards) {
+        // 检查是否可以出到对应花色的牌堆
+        if (this.canPlayCardToPile(card)) {
+          return true;
+        }
+      }
+      return false;
+    },
+    
+    // 检查单张牌是否可以出到牌堆
+    canPlayCardToPile(card) {
+      const pile = this.gamePiles[card.suit];
+      
+      if (!pile) return false;
+      
+      // 如果牌堆为空，只能出7
+      if (pile.count === 0) {
+        return card.rank === '7';
+      }
+      
+      // 获取牌堆的队尾和队头
+      const tailCard = pile.cards[pile.cards.length - 1]?.card;
+      const headCard = pile.cards[0]?.card;
+      
+      if (!tailCard || !headCard) return false;
+      
+      const cardValue = this.getCardValue(card.rank);
+      const tailCardValue = this.getCardValue(tailCard.rank);
+      const headCardValue = this.getCardValue(headCard.rank);
+      
+      // 检查是否可以接在队尾（向上接龙）或队头（向下接龙）
+      const canPlayToTail = Math.abs(cardValue - tailCardValue) === 1;
+      const canPlayToHead = Math.abs(cardValue - headCardValue) === 1;
+      
+      return canPlayToTail || canPlayToHead;
+    },
+    
+    // 获取牌面值
+    getCardValue(rank) {
+      switch(rank) {
+        case 'A': return 1;
+        case 'J': return 11;
+        case 'Q': return 12;
+        case 'K': return 13;
+        default: return parseInt(rank);
+      }
     }
     // goToTest() {
     //   uni.navigateTo({
@@ -502,6 +661,50 @@ export default {
   padding: 8px 16px;
   border-radius: 4px;
   font-size: 14px;
+}
+
+/* Pass按钮样式 */
+.pass-section {
+  margin-top: 15px;
+  padding: 15px;
+  background-color: #fff3cd;
+  border-radius: 8px;
+  border: 1px solid #ffeaa7;
+  text-align: center;
+}
+
+.pass-btn {
+  background-color: #ffc107;
+  color: #856404;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
+}
+
+.pass-btn:disabled {
+  background-color: #e0e0e0;
+  color: #9e9e9e;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.pass-btn:not(:disabled):hover {
+  background-color: #ffb300;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(255, 193, 7, 0.4);
+}
+
+.pass-hint {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #856404;
+  font-style: italic;
 }
 
 /* 出牌权显示样式 */

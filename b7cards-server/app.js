@@ -458,6 +458,83 @@ app.ws.use(async(ctx) => {
           initializePiles();
         }
       }
+      //-----------------处理Pass消息
+      if(parsedMsg.type === 'passTurn'){
+        const playerId = parsedMsg.playerid;
+        
+        console.log(`玩家 ${playerId} 请求Pass`);
+        
+        // 检查玩家是否存在
+        if (!clients.has(playerId)) {
+          console.log(`玩家 ${playerId} 不存在`);
+          return;
+        }
+        
+        // 检查出牌权
+        if (gameStarted && playerOrder[currentPlayerIndex] !== playerId) {
+          console.log(`玩家 ${playerId} 没有出牌权，当前轮到 ${playerOrder[currentPlayerIndex]}`);
+          
+          // 发送失败消息
+          const failMsg = JSON.stringify({
+            type: 'passFail',
+            content: `Pass失败: 现在轮到玩家 ${playerOrder[currentPlayerIndex]} 出牌`
+          });
+          clients.get(playerId).send(failMsg);
+          return;
+        }
+        
+        // 检查玩家手牌中是否有7
+        const playerHand = playerHands.get(playerId) || [];
+        const hasSeven = playerHand.some(card => card.rank === '7');
+        
+        if (hasSeven) {
+          console.log(`玩家 ${playerId} 手中有7，不能Pass`);
+          
+          // 发送失败消息
+          const failMsg = JSON.stringify({
+            type: 'passFail',
+            content: `Pass失败: 你手中有7，必须先出7`
+          });
+          clients.get(playerId).send(failMsg);
+          return;
+        }
+        
+        // Pass成功，轮换出牌权
+        console.log(`玩家 ${playerId} Pass成功`);
+        
+        // 轮换出牌权到下一个玩家
+        currentPlayerIndex = (currentPlayerIndex + 1) % playerOrder.length;
+        const nextPlayer = playerOrder[currentPlayerIndex];
+        
+        // 广播Pass成功消息给所有玩家
+        const passSuccessMsg = JSON.stringify({
+          type: 'passSuccess',
+          content: {
+            passedBy: playerId,
+            nextPlayer: nextPlayer,
+            message: `玩家 ${playerId} 选择Pass，轮到玩家 ${nextPlayer} 出牌`
+          }
+        });
+        
+        clients.forEach((socket, deviceId) => {
+          if (socket.readyState === 1) {
+            socket.send(passSuccessMsg);
+          }
+        });
+        
+        // 发送成功消息给Pass玩家
+        const successMsg = JSON.stringify({
+          type: 'passSuccess',
+          content: {
+            passedBy: playerId,
+            nextPlayer: nextPlayer,
+            message: `Pass成功，轮到玩家 ${nextPlayer} 出牌`
+          }
+        });
+        clients.get(playerId).send(successMsg);
+        
+        console.log(`出牌权转交给玩家 ${nextPlayer}`);
+      }
       //-----------------处理出牌消息
       if(parsedMsg.type === 'playCard'){
         const playerId = parsedMsg.playerid;
