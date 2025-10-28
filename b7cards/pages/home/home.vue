@@ -106,8 +106,6 @@
 </template>
 
 <script>
-
-
 const app = getApp();
 export default {
   
@@ -257,6 +255,14 @@ export default {
 					icon: 'error',
 					duration: 2000
 				});
+			}
+			
+			// 处理手牌更新消息
+			if(messageData.type == "handUpdate"){
+				console.log("收到手牌更新消息:", messageData.content);
+				this.playerCards = messageData.content.playerCards || [];
+				// 检查是否可以Pass
+				this.checkCanPass();
 			}
 		 
 		  } catch (error) {
@@ -438,17 +444,28 @@ export default {
       // 检查是否有7在手牌中
       const hasSeven = this.playerCards.some(card => card.rank === '7');
       
-      // 检查是否有可以出的牌
-      const canPlayAnyCard = this.checkCanPlayAnyCard();
+      // 检查是否有可以出的牌（考虑有7必须先出7的规则）
+      const canPlayAnyCard = this.checkCanPlayAnyCard(hasSeven);
       
       if (hasSeven) {
-        // 有7在手牌中，不能Pass
-        this.canPass = false;
-        this.passHint = '手中有7，必须先出7';
+        // 有7在手牌中，检查是否有7可以出
+        const canPlaySeven = this.playerCards.some(card => 
+          card.rank === '7' && this.canPlayCardToPile(card)
+        );
+        
+        if (canPlaySeven) {
+          // 有7可以出，不能Pass
+          this.canPass = false;
+          this.passHint = '手中有7，必须先出7';
+        } else {
+          // 有7但不能出（比如对应的花色牌堆已经有7了），可以Pass
+          this.canPass = true;
+          this.passHint = '有7但不能出，可以Pass';
+        }
       } else if (canPlayAnyCard) {
-        // 有可以出的牌，可以Pass但提示
-        this.canPass = true;
-        this.passHint = '有牌可出，确定要Pass吗？';
+        // 有可以出的牌，不能Pass
+        this.canPass = false;
+        this.passHint = '有牌可出，不能Pass';
       } else {
         // 没有可以出的牌，可以Pass
         this.canPass = true;
@@ -457,8 +474,13 @@ export default {
     },
     
     // 检查是否有可以出的牌
-    checkCanPlayAnyCard() {
+    checkCanPlayAnyCard(hasSeven = false) {
       for (const card of this.playerCards) {
+        // 如果有7在手牌中，只能出7
+        if (hasSeven && card.rank !== '7') {
+          continue;
+        }
+        
         // 检查是否可以出到对应花色的牌堆
         if (this.canPlayCardToPile(card)) {
           return true;

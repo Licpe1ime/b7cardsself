@@ -53,6 +53,25 @@ function hasSevenInHand(playerId) {
   return hand.some(card => card.rank === '7');
 }
 
+// 检查玩家是否有可以出的牌
+function hasPlayableCard(playerId) {
+  const hand = playerHands.get(playerId) || [];
+  const hasSeven = hasSevenInHand(playerId);
+  
+  for (const card of hand) {
+    // 如果有7在手牌中，只能出7
+    if (hasSeven && card.rank !== '7') {
+      continue;
+    }
+    
+    // 检查是否可以出到对应花色的牌堆
+    if (canPlayToPile(card, card.suit, playerId)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // 检查是否可以出牌到指定牌堆（憋七规则）
 function canPlayToPile(card, suit, playerId) {
   const pile = gamePiles[suit];
@@ -483,17 +502,16 @@ app.ws.use(async(ctx) => {
           return;
         }
         
-        // 检查玩家手牌中是否有7
-        const playerHand = playerHands.get(playerId) || [];
-        const hasSeven = playerHand.some(card => card.rank === '7');
+        // 检查玩家是否可以Pass
+        const hasPlayableCard = hasPlayableCard(playerId);
         
-        if (hasSeven) {
-          console.log(`玩家 ${playerId} 手中有7，不能Pass`);
+        if (hasPlayableCard) {
+          console.log(`玩家 ${playerId} 有可以出的牌，不能Pass`);
           
           // 发送失败消息
           const failMsg = JSON.stringify({
             type: 'passFail',
-            content: `Pass失败: 你手中有7，必须先出7`
+            content: `Pass失败: 你还有可以出的牌，不能Pass`
           });
           clients.get(playerId).send(failMsg);
           return;
@@ -576,6 +594,28 @@ app.ws.use(async(ctx) => {
           return;
         }
         
+        // 先检查是否符合出牌规则
+        const canPlay = canPlayToPile(card, card.suit, playerId);
+        
+        if (!canPlay) {
+          console.log(`出牌失败: ${card.suit}_${card.rank} 不符合规则`);
+          
+          // 检查失败原因
+          let failReason = '不符合出牌规则';
+          if (hasSevenInHand(playerId) && card.rank !== '7') {
+            failReason = '你手中有7，必须先出7';
+          }
+          
+          // 发送失败消息给出牌玩家
+          const failMsg = JSON.stringify({
+            type: 'playCardFail',
+            content: `出牌失败: ${card.rank}${getSuitSymbol(card.suit)} ${failReason}`,
+            hasSeven: hasSevenInHand(playerId)
+          });
+          clients.get(playerId).send(failMsg);
+          return;
+        }
+        
         // 尝试出牌到对应花色的牌堆
         const success = playCardToPile(card, card.suit, playerId);
         
@@ -601,6 +641,20 @@ app.ws.use(async(ctx) => {
           clients.forEach((socket, deviceId) => {
             if (socket.readyState === 1) {
               socket.send(pileUpdateMsg);
+            }
+          });
+          
+          // 发送更新后的手牌信息给所有玩家（确保同步）
+          clients.forEach((socket, deviceId) => {
+            const updatedHandMsg = JSON.stringify({
+              type: 'handUpdate',
+              content: {
+                playerCards: playerHands.get(deviceId),
+                hasSeven: hasSevenInHand(deviceId)
+              }
+            });
+            if (socket.readyState === 1) {
+              socket.send(updatedHandMsg);
             }
           });
           
