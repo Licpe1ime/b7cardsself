@@ -8,14 +8,7 @@
 		},
 		onHide: function() {
 			console.log('App Hide')
-		},
-		globalData: {
-
-    		socketTask: null,
-    		isConnected: false,
-			diviceid: null,
-    		socketMessages: []
-  		},
+		}
 	}
 </script>
 

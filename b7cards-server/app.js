@@ -12,9 +12,19 @@ const app = websockify(new Koa());
 const index = require('./routes/index')
 const users = require('./routes/users')
 const url = require('url')
+const { buffer } = require('stream/consumers')
+const { type } = require('os')
 //-----------------------添加内容
-
-
+// 获取牌面值的辅助函数
+function getCardValue(rank) {
+  switch(rank) {
+    case 'A': return 1;
+    case 'J': return 11;
+    case 'Q': return 12;
+    case 'K': return 13;
+    default: return parseInt(rank);
+  }
+}
 //--------------------------------
 
 // error handler
@@ -101,46 +111,27 @@ app.ws.use(async(ctx) => {
     console.log("websocket 连接建立失败" + err);
     
   }
-  
+  //关闭处理
+  ctx.websocket.on('close', (code, reason) => {
+    
+    if(Buffer.isBuffer(reason)){
+    //clients.delete(deviceId); 
+    message = reason.toString('utf8');
+    let constmsg = JSON.parse(message)
+    const deviceId = constmsg.deviceId
+    clients.delete(deviceId)
+    
+    console.log(`设备 ${deviceId} 已关闭`+ "原因：" + constmsg.reason);
+   }
+
+  })
 
 
   //-------------------------------------------------
   
   // 监听客户端发送的消息
-  ctx.websocket.on("close",(code,reason) =>{
-  
-    console.log("识别到关闭请求");
-    console.log('原始 reason:', typeof reason, reason); // 检查是否为字符串
-
-  try {
-      let reasonStr;
-    if (Buffer.isBuffer(reason)) {
-    reasonStr = reason.toString('utf8');
-    console.log("reason1: " + reasonStr);// 二进制转字符串
-  } else if (typeof reason === 'string') {
-    reasonStr = reason;
-    console.log("reason2: " + reasonStr);
-  } else {
-    console.log('未知的 reason 类型:', typeof reason, reason);
-    return;
-  }
-    const closeData = JSON.parse(reasonStr); // 解析 reason
-    if (closeData.type === 'close' && closeData.deviceId) {
-      console.log(`设备 ${closeData.deviceId} 主动退出，原因: ${closeData.reason}`);
-      if (clients.has(closeData.deviceId)) {
-        clients.get(closeData.deviceId).close(1000, reason); // 关闭连接
-        clients.delete(closeData.deviceId); // 清理 Map
-      }
-      
-    }
-  } catch (err) {
-    console.log('普通关闭，未携带额外信息', err);
-  }
-  })
-
-
   ctx.websocket.on('message', (msg) => {
-    //console.log("收到消息：" + msg);
+    
     let message;
     if(Buffer.isBuffer(msg)){
       message = msg.toString('utf8');
@@ -151,26 +142,133 @@ app.ws.use(async(ctx) => {
     console.log('无效的消息格式:', message);
     return;
     }
-    if (ctx.websocket.readyState !== 1) {
-    console.log('连接已关闭，忽略消息');
-    return;
-  }
     console.log('收到消息:', message);
      
-    //===============这里有严重错误
+    
     try{
        const parsedMsg = JSON.parse(message);
-       
-      // if (parsedMsg.type === 'close'){
-      //   const puid = parsedMsg.deviceId
-      //   if(clients.has(puid)){
-      //     clients.get(puid).close(1000,"用户：" + puid + "已退出")
-      //     clients.delete(puid);
-      //   }
-      // return;
-      // }
 
-     }
+
+       //----------这里做消息的判别处理
+      if (parsedMsg.type === 'close'){
+        console.log("收到关闭消息")
+        const puid = parsedMsg.deviceId
+        if(clients.has(puid)){
+          clients.get(puid).close(1000,"用户：" + puid + "已退出")
+          clients.delete(puid);
+        }
+      return;
+      }
+      //注意这里接收用的是system但是回传用的不是system
+      if(parsedMsg.type === 'system'){
+        const reqmthuoud = parsedMsg.reqmethoud
+        if(reqmthuoud === 'syninformation'){
+          if(clients.has(parsedMsg.playerid)){
+            let arr = []
+            clients.forEach((socket, deviceId) => {
+              let a = 0
+              //在这里添加push的代码
+              arr.push({deviceId})
+              
+              console.log("同步到的玩家信息:" + a + "  " + arr[a]);
+              a++;
+            })
+            let msg = JSON.stringify({
+              type: 'syninformation',
+              content: arr,
+
+            })
+            clients.get(parsedMsg.playerid).send(msg);
+            console.log("同步信息给玩家：" + parsedMsg.playerid + "  " + msg);
+          }
+        }
+
+      }
+      //-----------------处理开始游戏后的发牌操作
+      if(parsedMsg.type === 'gameStart'){
+        if(clients.size < 2){
+          clients.forEach((socket, deviceId) => {
+            let mse = JSON.stringify({
+              type: 'alert',
+              content: "人数不足2，无法开始",
+              deviceId: deviceId
+            })
+            socket.send(mse)
+          })
+        }
+        //-------不是一个人开始游戏
+        else{
+          let members = clients.size;
+          
+          // 创建一副52张扑克牌
+          const suits = ['hearts', 'spades', 'clubs', 'diamonds']; // 红心、黑桃、梅花、方块
+          const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+          
+          let deck = [];
+          // 生成完整的扑克牌
+          suits.forEach(suit => {
+            ranks.forEach(rank => {
+              deck.push({
+                suit: suit,
+                rank: rank,
+                value: getCardValue(rank),
+                id: suit + '_' + rank
+              });
+            });
+          });
+          
+          // 洗牌算法
+          for (let i = deck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [deck[i], deck[j]] = [deck[j], deck[i]];
+          }
+          
+          // 计算每个玩家应该获得的牌数
+          const cardsPerPlayer = Math.floor(52 / members);
+          const remainingCards = 52 % members;
+          
+          // 给每个玩家发牌
+          let playerCards = new Map();
+          let cardIndex = 0;
+          
+          clients.forEach((socket, deviceId) => {
+            let playerDeck = [];
+            
+            // 给玩家发牌
+            for (let i = 0; i < cardsPerPlayer; i++) {
+              if (cardIndex < deck.length) {
+                playerDeck.push(deck[cardIndex]);
+                cardIndex++;
+              }
+            }
+            
+            // 如果有剩余的牌，给前几个玩家各多发一张
+            if (remainingCards > 0 && Array.from(clients.keys()).indexOf(deviceId) < remainingCards) {
+              if (cardIndex < deck.length) {
+                playerDeck.push(deck[cardIndex]);
+                cardIndex++;
+              }
+            }
+            
+            playerCards.set(deviceId, playerDeck);
+            
+            // 发送牌给玩家
+            let gameStartMsg = JSON.stringify({
+              type: 'gameStartRes',
+              content: {
+                playerCards: playerDeck,
+                totalPlayers: members,
+                cardsCount: playerDeck.length
+              },
+              deviceId: deviceId
+            });
+            socket.send(gameStartMsg);
+          });
+          
+          console.log(`游戏开始，${members}名玩家，每人${cardsPerPlayer}张牌`);
+        }
+      }
+    }
     catch(err){
       console.log('解析消息失败:', err);
     }

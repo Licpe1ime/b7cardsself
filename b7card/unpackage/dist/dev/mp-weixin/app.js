@@ -2,7 +2,6 @@
 Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 const common_vendor = require("./common/vendor.js");
 if (!Math) {
-  "./pages/home/home.js";
   "./pages/index/index.js";
 }
 const _sfc_main = {
@@ -14,12 +13,6 @@ const _sfc_main = {
   },
   onHide: function() {
     common_vendor.index.__f__("log", "at App.vue:10", "App Hide");
-  },
-  globalData: {
-    socketTask: null,
-    isConnected: false,
-    diviceid: null,
-    socketMessages: []
   }
 };
 function createApp() {

@@ -1,8 +1,41 @@
 {
+  "name": "b7cards",
+  "version": "1.0.0",
+  "description": "b7cards 微信小游戏",
+  "main": "main.js",
+  "scripts": {
+    "dev": "npm run dev:mp-weixin",
+    "build": "npm run build:mp-weixin",
+    "dev:mp-weixin": "cross-env NODE_ENV=development UNI_PLATFORM=mp-weixin vue-cli-service uni-build --watch",
+    "build:mp-weixin": "cross-env NODE_ENV=production UNI_PLATFORM=mp-weixin vue-cli-service uni-build",
+    "postdev:mp-weixin": "node -e \"const fs = require('fs'); const path = require('path'); const src = path.resolve(__dirname, 'game.json'); const destDir = path.resolve(__dirname, 'unpackage/dist/dev/mp-weixin'); const dest = path.resolve(destDir, 'game.json'); if (fs.existsSync(src)) { if (!fs.existsSync(destDir)) { fs.mkdirSync(destDir, { recursive: true }); } fs.copyFileSync(src, dest); console.log('✅ game.json 已自动复制到构建输出目录:', dest); } else { console.warn('⚠️ 未找到 game.json 文件，请确认它存在于项目根目录'); }\"",
+    "postbuild:mp-weixin": "node -e \"const fs = require('fs'); const path = require('path'); const src = path.resolve(__dirname, 'game.json'); const destDir = path.resolve(__dirname, 'unpackage/dist/dev/mp-weixin'); const dest = path.resolve(destDir, 'game.json'); if (fs.existsSync(src)) { if (!fs.existsSync(destDir)) { fs.mkdirSync(destDir, { recursive: true }); } fs.copyFileSync(src, dest); console.log('✅ game.json 已自动复制到构建输出目录:', dest); } else { console.warn('⚠️ 未找到 game.json 文件，请确认它存在于项目根目录'); }\""
+  },
   "dependencies": {
     "koa-websocket": "^7.0.0",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "@dcloudio/uni-app-plus": "^3.0.0-*",
+    "@dcloudio/uni-mp-weixin": "^3.0.0-*"
+  },
+  "devDependencies": {
+    "@dcloudio/uni-cli-shared": "^3.0.0-*",
+    "@dcloudio/vue-cli-plugin-uni": "^3.0.0-*",
+    "@vue/cli-service": "^5.0.8",
+    "cross-env": "^7.0.3",
+    "vue": "^3.3.4",
+    "vue-loader": "^17.2.2"
+  },
+  "uni-app": {
+    "scripts": {
+      "mp-weixin": {
+        "title": "微信小游戏",
+        "env": {
+          "UNI_PLATFORM": "mp-weixin"
+        },
+        "define": {
+          "MP-WEIXIN": true
+        }
+      }
+    }
   }
-  
 }
-
