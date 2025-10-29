@@ -53,25 +53,6 @@ function hasSevenInHand(playerId) {
   return hand.some(card => card.rank === '7');
 }
 
-// 检查玩家是否有可以出的牌
-function hasPlayableCard(playerId) {
-  const hand = playerHands.get(playerId) || [];
-  const hasSeven = hasSevenInHand(playerId);
-  
-  for (const card of hand) {
-    // 如果有7在手牌中，只能出7
-    if (hasSeven && card.rank !== '7') {
-      continue;
-    }
-    
-    // 检查是否可以出到对应花色的牌堆
-    if (canPlayToPile(card, card.suit, playerId)) {
-      return true;
-    }
-  }
-  return false;
-}
-
 // 检查是否可以出牌到指定牌堆（憋七规则）
 function canPlayToPile(card, suit, playerId) {
   const pile = gamePiles[suit];
@@ -81,8 +62,8 @@ function canPlayToPile(card, suit, playerId) {
     return false;
   }
   
-  // 如果玩家手中有7，必须先出7
-  if (hasSevenInHand(playerId) && card.rank !== '7') {
+  // 如果是第一个出牌且玩家手中有7，必须出7
+  if (!firstPlayMade && hasSevenInHand(playerId) && card.rank !== '7') {
     return false;
   }
   
@@ -123,6 +104,7 @@ function playCardToPile(card, suit, playerId) {
       timestamp: Date.now(),
       pileIndex: 0
     });
+    firstPlayMade = true; // 标记已有玩家出过牌
     return true;
   }
   
@@ -177,6 +159,7 @@ function playCardToPile(card, suit, playerId) {
     playerHands.set(playerId, hand);
   }
   
+  firstPlayMade = true; // 标记已有玩家出过牌
   return true;
 }
 
@@ -252,6 +235,7 @@ const playerHands = new Map();
 let currentPlayerIndex = 0;
 let playerOrder = [];
 let gameStarted = false;
+let firstPlayMade = false; // 跟踪是否已有玩家出牌
 app.ws.use(async(ctx) => {
   console.log("websocket 连接已经建立");
   try{
@@ -430,7 +414,9 @@ app.ws.use(async(ctx) => {
           const remainingCards = 52 % members;
           
           // 给每个玩家发牌
-          let playerCards = new Map();
+          //------------这里对玩家手牌的储存重复了注释掉下边返回的消息采用上边声明的
+
+          //let playerCards = new Map();
           let cardIndex = 0;
           
           clients.forEach((socket, deviceId) => {
@@ -452,7 +438,7 @@ app.ws.use(async(ctx) => {
               }
             }
             
-            playerCards.set(deviceId, playerDeck);
+            //playerCards.set(deviceId, playerDeck);
             // 存储玩家手牌
             playerHands.set(deviceId, playerDeck);
             
@@ -460,18 +446,22 @@ app.ws.use(async(ctx) => {
             let gameStartMsg = JSON.stringify({
               type: 'gameStartRes',
               content: {
+                //这里的playerdeck是一个数组
                 playerCards: playerDeck,
                 totalPlayers: members,
                 cardsCount: playerDeck.length,
                 hasSeven: playerDeck.some(card => card.rank === '7'),
                 currentPlayer: playerOrder[currentPlayerIndex],
-                isYourTurn: deviceId === playerOrder[currentPlayerIndex]
+                // 判断是否是当前玩家的出牌权,这里改为出牌的id
+                //isYourTurn: deviceId === playerOrder[currentPlayerIndex]
               },
               deviceId: deviceId
             });
+            console.log(playerDeck);
             socket.send(gameStartMsg);
           });
-          
+
+          console.log("玩家手牌：" + playerHands)
           console.log(`游戏开始，${members}名玩家，每人${cardsPerPlayer}张牌`);
           // 初始化牌堆
           initializePiles();
@@ -502,20 +492,8 @@ app.ws.use(async(ctx) => {
           return;
         }
         
-        // 检查玩家是否可以Pass
-        const hasPlayableCard = hasPlayableCard(playerId);
-        
-        if (hasPlayableCard) {
-          console.log(`玩家 ${playerId} 有可以出的牌，不能Pass`);
-          
-          // 发送失败消息
-          const failMsg = JSON.stringify({
-            type: 'passFail',
-            content: `Pass失败: 你还有可以出的牌，不能Pass`
-          });
-          clients.get(playerId).send(failMsg);
-          return;
-        }
+        // 第一个玩家可以Pass，不需要特殊限制
+        // 简化规则：所有玩家都可以Pass
         
         // Pass成功，轮换出牌权
         console.log(`玩家 ${playerId} Pass成功`);
@@ -594,28 +572,6 @@ app.ws.use(async(ctx) => {
           return;
         }
         
-        // 先检查是否符合出牌规则
-        const canPlay = canPlayToPile(card, card.suit, playerId);
-        
-        if (!canPlay) {
-          console.log(`出牌失败: ${card.suit}_${card.rank} 不符合规则`);
-          
-          // 检查失败原因
-          let failReason = '不符合出牌规则';
-          if (hasSevenInHand(playerId) && card.rank !== '7') {
-            failReason = '你手中有7，必须先出7';
-          }
-          
-          // 发送失败消息给出牌玩家
-          const failMsg = JSON.stringify({
-            type: 'playCardFail',
-            content: `出牌失败: ${card.rank}${getSuitSymbol(card.suit)} ${failReason}`,
-            hasSeven: hasSevenInHand(playerId)
-          });
-          clients.get(playerId).send(failMsg);
-          return;
-        }
-        
         // 尝试出牌到对应花色的牌堆
         const success = playCardToPile(card, card.suit, playerId);
         
@@ -641,20 +597,6 @@ app.ws.use(async(ctx) => {
           clients.forEach((socket, deviceId) => {
             if (socket.readyState === 1) {
               socket.send(pileUpdateMsg);
-            }
-          });
-          
-          // 发送更新后的手牌信息给所有玩家（确保同步）
-          clients.forEach((socket, deviceId) => {
-            const updatedHandMsg = JSON.stringify({
-              type: 'handUpdate',
-              content: {
-                playerCards: playerHands.get(deviceId),
-                hasSeven: hasSevenInHand(deviceId)
-              }
-            });
-            if (socket.readyState === 1) {
-              socket.send(updatedHandMsg);
             }
           });
           
@@ -689,14 +631,6 @@ app.ws.use(async(ctx) => {
     catch(err){
       console.log('解析消息失败:', err);
     }
-
-
-
-
-
-
-
-
 
 
 //     try{

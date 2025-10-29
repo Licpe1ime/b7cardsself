@@ -34,18 +34,18 @@ const _sfc_main = {
   methods: {
     setupWebSocketListener() {
       if (app.globalData.socketTask && app.globalData.isConnected) {
-        common_vendor.index.__f__("log", "at pages/home/home.vue:138", "监听器设置成功");
+        common_vendor.index.__f__("log", "at pages/home/home.vue:140", "监听器设置成功");
         this.canbutton = true;
         app.globalData.socketTask.onMessage((res) => {
-          common_vendor.index.__f__("log", "at pages/home/home.vue:142", "Home页面收到WebSocket消息:", res);
+          common_vendor.index.__f__("log", "at pages/home/home.vue:144", "Home页面收到WebSocket消息:", res);
           try {
             const messageData = JSON.parse(res.data);
             if (messageData.type == "syninformation") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:148", "进入到同步数组if");
+              common_vendor.index.__f__("log", "at pages/home/home.vue:150", "进入到同步数组if");
               this.playerlist = messageData.content;
             }
             if (messageData.type == "alert") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:154", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:156", messageData.content);
               common_vendor.index.showToast({
                 title: messageData.content,
                 icon: "error",
@@ -53,7 +53,7 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "gameStartRes") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:162", "收到游戏开始响应，手牌信息:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:164", "收到游戏开始响应，手牌信息:", messageData.content);
               this.playerCards = messageData.content.playerCards || [];
               this.gameStatus = "playing";
               this.selectedCard = null;
@@ -64,7 +64,7 @@ const _sfc_main = {
                 clubs: { suit: "clubs", count: 0, topCard: null, playedBy: null, cards: [] }
               };
               this.currentPlayer = messageData.content.currentPlayer;
-              this.isYourTurn = messageData.content.isYourTurn;
+              this.isYourTurn = this.currentPlayer === app.globalData.diviceid;
               this.checkCanPass();
               common_vendor.index.showToast({
                 title: `游戏开始！获得${this.playerCards.length}张牌`,
@@ -73,7 +73,7 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "pileUpdate") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:188", "收到牌堆更新消息:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:191", "收到牌堆更新消息:", messageData.content);
               this.gamePiles = messageData.content.pileInfo;
               if (messageData.content.currentPlayer) {
                 this.currentPlayer = messageData.content.currentPlayer;
@@ -90,7 +90,7 @@ const _sfc_main = {
               }
             }
             if (messageData.type == "playCardSuccess") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:213", "出牌成功:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:216", "出牌成功:", messageData.content);
               common_vendor.index.showToast({
                 title: messageData.content,
                 icon: "success",
@@ -98,7 +98,7 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "playCardFail") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:223", "出牌失败:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:226", "出牌失败:", messageData.content);
               common_vendor.index.showToast({
                 title: messageData.content,
                 icon: "error",
@@ -106,7 +106,7 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "passSuccess") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:233", "Pass成功:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:236", "Pass成功:", messageData.content);
               if (messageData.content.nextPlayer) {
                 this.currentPlayer = messageData.content.nextPlayer;
                 this.isYourTurn = this.currentPlayer === app.globalData.diviceid;
@@ -119,34 +119,29 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "passFail") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:252", "Pass失败:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:255", "Pass失败:", messageData.content);
               common_vendor.index.showToast({
                 title: messageData.content,
                 icon: "error",
                 duration: 2e3
               });
             }
-            if (messageData.type == "handUpdate") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:262", "收到手牌更新消息:", messageData.content);
-              this.playerCards = messageData.content.playerCards || [];
-              this.checkCanPass();
-            }
           } catch (error) {
-            common_vendor.index.__f__("error", "at pages/home/home.vue:269", "消息解析失败:", error, "原始数据:", res.data);
+            common_vendor.index.__f__("error", "at pages/home/home.vue:264", "消息解析失败:", error, "原始数据:", res.data);
           }
         });
         this.isListening = true;
-        common_vendor.index.__f__("log", "at pages/home/home.vue:276", "Home页面WebSocket监听器已设置");
+        common_vendor.index.__f__("log", "at pages/home/home.vue:271", "Home页面WebSocket监听器已设置");
       } else {
-        common_vendor.index.__f__("log", "at pages/home/home.vue:278", "WebSocket未连接，无法设置监听器");
+        common_vendor.index.__f__("log", "at pages/home/home.vue:273", "WebSocket未连接，无法设置监听器");
         setTimeout(() => {
           this.setupWebSocketListener();
         }, 2e3);
       }
     },
     SynInformation() {
-      common_vendor.index.__f__("log", "at pages/home/home.vue:286", "是否成功连接" + app.globalData.isConnected);
-      common_vendor.index.__f__("log", "at pages/home/home.vue:287", "socketTask:" + app.globalData.socketTask);
+      common_vendor.index.__f__("log", "at pages/home/home.vue:281", "是否成功连接" + app.globalData.isConnected);
+      common_vendor.index.__f__("log", "at pages/home/home.vue:282", "socketTask:" + app.globalData.socketTask);
       if (app.globalData.isConnected && app.globalData.socketTask) {
         const message = {
           type: "system",
@@ -157,10 +152,10 @@ const _sfc_main = {
           data: JSON.stringify(message),
           success: () => {
             this.isConnected = true;
-            common_vendor.index.__f__("log", "at pages/home/home.vue:301", "同步信息成功");
+            common_vendor.index.__f__("log", "at pages/home/home.vue:296", "同步信息成功");
           },
           fail: (err) => {
-            common_vendor.index.__f__("error", "at pages/home/home.vue:306", "同步用户信息失败:", err);
+            common_vendor.index.__f__("error", "at pages/home/home.vue:301", "同步用户信息失败:", err);
           }
         });
       } else {
@@ -180,10 +175,10 @@ const _sfc_main = {
         data: JSON.stringify(message),
         success: () => {
           this.isConnected = true;
-          common_vendor.index.__f__("log", "at pages/home/home.vue:328", "发送开始游戏请求");
+          common_vendor.index.__f__("log", "at pages/home/home.vue:323", "发送开始游戏请求");
         },
         fail: (err) => {
-          common_vendor.index.__f__("error", "at pages/home/home.vue:333", "发送卡开始请求失败:", err);
+          common_vendor.index.__f__("error", "at pages/home/home.vue:328", "发送卡开始请求失败:", err);
         }
       });
     },
@@ -223,7 +218,7 @@ const _sfc_main = {
         });
         return;
       }
-      common_vendor.index.__f__("log", "at pages/home/home.vue:373", "出牌:", this.selectedCard);
+      common_vendor.index.__f__("log", "at pages/home/home.vue:368", "出牌:", this.selectedCard);
       const message = {
         type: "playCard",
         playerid: app.globalData.diviceid,
@@ -232,10 +227,10 @@ const _sfc_main = {
       app.globalData.socketTask.send({
         data: JSON.stringify(message),
         success: () => {
-          common_vendor.index.__f__("log", "at pages/home/home.vue:386", "出牌请求发送成功，等待服务器验证");
+          common_vendor.index.__f__("log", "at pages/home/home.vue:381", "出牌请求发送成功，等待服务器验证");
         },
         fail: (err) => {
-          common_vendor.index.__f__("error", "at pages/home/home.vue:391", "出牌请求发送失败:", err);
+          common_vendor.index.__f__("error", "at pages/home/home.vue:386", "出牌请求发送失败:", err);
           common_vendor.index.showToast({
             title: "出牌请求发送失败",
             icon: "none",
@@ -254,7 +249,7 @@ const _sfc_main = {
         });
         return;
       }
-      common_vendor.index.__f__("log", "at pages/home/home.vue:412", "玩家选择Pass");
+      common_vendor.index.__f__("log", "at pages/home/home.vue:407", "玩家选择Pass");
       const message = {
         type: "passTurn",
         playerid: app.globalData.diviceid
@@ -262,10 +257,10 @@ const _sfc_main = {
       app.globalData.socketTask.send({
         data: JSON.stringify(message),
         success: () => {
-          common_vendor.index.__f__("log", "at pages/home/home.vue:423", "Pass请求发送成功");
+          common_vendor.index.__f__("log", "at pages/home/home.vue:418", "Pass请求发送成功");
         },
         fail: (err) => {
-          common_vendor.index.__f__("error", "at pages/home/home.vue:426", "Pass请求发送失败:", err);
+          common_vendor.index.__f__("error", "at pages/home/home.vue:421", "Pass请求发送失败:", err);
           common_vendor.index.showToast({
             title: "Pass请求发送失败",
             icon: "none",
@@ -281,74 +276,10 @@ const _sfc_main = {
         this.passHint = "";
         return;
       }
-      const hasSeven = this.playerCards.some((card) => card.rank === "7");
-      const canPlayAnyCard = this.checkCanPlayAnyCard(hasSeven);
-      if (hasSeven) {
-        const canPlaySeven = this.playerCards.some(
-          (card) => card.rank === "7" && this.canPlayCardToPile(card)
-        );
-        if (canPlaySeven) {
-          this.canPass = false;
-          this.passHint = "手中有7，必须先出7";
-        } else {
-          this.canPass = true;
-          this.passHint = "有7但不能出，可以Pass";
-        }
-      } else if (canPlayAnyCard) {
-        this.canPass = false;
-        this.passHint = "有牌可出，不能Pass";
-      } else {
-        this.canPass = true;
-        this.passHint = "没有可以出的牌";
-      }
-    },
-    // 检查是否有可以出的牌
-    checkCanPlayAnyCard(hasSeven = false) {
-      for (const card of this.playerCards) {
-        if (hasSeven && card.rank !== "7") {
-          continue;
-        }
-        if (this.canPlayCardToPile(card)) {
-          return true;
-        }
-      }
-      return false;
-    },
-    // 检查单张牌是否可以出到牌堆
-    canPlayCardToPile(card) {
-      var _a, _b;
-      const pile = this.gamePiles[card.suit];
-      if (!pile)
-        return false;
-      if (pile.count === 0) {
-        return card.rank === "7";
-      }
-      const tailCard = (_a = pile.cards[pile.cards.length - 1]) == null ? void 0 : _a.card;
-      const headCard = (_b = pile.cards[0]) == null ? void 0 : _b.card;
-      if (!tailCard || !headCard)
-        return false;
-      const cardValue = this.getCardValue(card.rank);
-      const tailCardValue = this.getCardValue(tailCard.rank);
-      const headCardValue = this.getCardValue(headCard.rank);
-      const canPlayToTail = Math.abs(cardValue - tailCardValue) === 1;
-      const canPlayToHead = Math.abs(cardValue - headCardValue) === 1;
-      return canPlayToTail || canPlayToHead;
-    },
-    // 获取牌面值
-    getCardValue(rank) {
-      switch (rank) {
-        case "A":
-          return 1;
-        case "J":
-          return 11;
-        case "Q":
-          return 12;
-        case "K":
-          return 13;
-        default:
-          return parseInt(rank);
-      }
+      this.canPass = true;
+      this.passHint = "可以Pass";
     }
+    // 简化前端判断，所有规则判断交给后端
     // goToTest() {
     //   uni.navigateTo({
     //     url: '/pages/index/index'

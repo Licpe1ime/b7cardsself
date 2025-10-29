@@ -106,6 +106,8 @@
 </template>
 
 <script>
+
+
 const app = getApp();
 export default {
   
@@ -172,7 +174,8 @@ export default {
 				};
 				// 设置当前出牌玩家
 				this.currentPlayer = messageData.content.currentPlayer;
-				this.isYourTurn = messageData.content.isYourTurn;
+				this.isYourTurn = this.currentPlayer === app.globalData.diviceid;
+				//this.isYourTurn = messageData.content.isYourTurn;
 				// 检查是否可以Pass
 				this.checkCanPass();
 				
@@ -182,7 +185,7 @@ export default {
 					duration: 2000
 				});
 			}
-			
+			//------------------------------------------以上经过校对没有问题/待检验
 			// 处理牌堆更新消息
 			if(messageData.type == "pileUpdate"){
 				console.log("收到牌堆更新消息:", messageData.content);
@@ -255,14 +258,6 @@ export default {
 					icon: 'error',
 					duration: 2000
 				});
-			}
-			
-			// 处理手牌更新消息
-			if(messageData.type == "handUpdate"){
-				console.log("收到手牌更新消息:", messageData.content);
-				this.playerCards = messageData.content.playerCards || [];
-				// 检查是否可以Pass
-				this.checkCanPass();
 			}
 		 
 		  } catch (error) {
@@ -440,93 +435,12 @@ export default {
         this.passHint = '';
         return;
       }
-      
-      // 检查是否有7在手牌中
-      const hasSeven = this.playerCards.some(card => card.rank === '7');
-      
-      // 检查是否有可以出的牌（考虑有7必须先出7的规则）
-      const canPlayAnyCard = this.checkCanPlayAnyCard(hasSeven);
-      
-      if (hasSeven) {
-        // 有7在手牌中，检查是否有7可以出
-        const canPlaySeven = this.playerCards.some(card => 
-          card.rank === '7' && this.canPlayCardToPile(card)
-        );
-        
-        if (canPlaySeven) {
-          // 有7可以出，不能Pass
-          this.canPass = false;
-          this.passHint = '手中有7，必须先出7';
-        } else {
-          // 有7但不能出（比如对应的花色牌堆已经有7了），可以Pass
-          this.canPass = true;
-          this.passHint = '有7但不能出，可以Pass';
-        }
-      } else if (canPlayAnyCard) {
-        // 有可以出的牌，不能Pass
-        this.canPass = false;
-        this.passHint = '有牌可出，不能Pass';
-      } else {
-        // 没有可以出的牌，可以Pass
-        this.canPass = true;
-        this.passHint = '没有可以出的牌';
-      }
+      // 简化规则：所有玩家都可以Pass
+      this.canPass = true;
+      this.passHint = '可以Pass';
     },
     
-    // 检查是否有可以出的牌
-    checkCanPlayAnyCard(hasSeven = false) {
-      for (const card of this.playerCards) {
-        // 如果有7在手牌中，只能出7
-        if (hasSeven && card.rank !== '7') {
-          continue;
-        }
-        
-        // 检查是否可以出到对应花色的牌堆
-        if (this.canPlayCardToPile(card)) {
-          return true;
-        }
-      }
-      return false;
-    },
-    
-    // 检查单张牌是否可以出到牌堆
-    canPlayCardToPile(card) {
-      const pile = this.gamePiles[card.suit];
-      
-      if (!pile) return false;
-      
-      // 如果牌堆为空，只能出7
-      if (pile.count === 0) {
-        return card.rank === '7';
-      }
-      
-      // 获取牌堆的队尾和队头
-      const tailCard = pile.cards[pile.cards.length - 1]?.card;
-      const headCard = pile.cards[0]?.card;
-      
-      if (!tailCard || !headCard) return false;
-      
-      const cardValue = this.getCardValue(card.rank);
-      const tailCardValue = this.getCardValue(tailCard.rank);
-      const headCardValue = this.getCardValue(headCard.rank);
-      
-      // 检查是否可以接在队尾（向上接龙）或队头（向下接龙）
-      const canPlayToTail = Math.abs(cardValue - tailCardValue) === 1;
-      const canPlayToHead = Math.abs(cardValue - headCardValue) === 1;
-      
-      return canPlayToTail || canPlayToHead;
-    },
-    
-    // 获取牌面值
-    getCardValue(rank) {
-      switch(rank) {
-        case 'A': return 1;
-        case 'J': return 11;
-        case 'Q': return 12;
-        case 'K': return 13;
-        default: return parseInt(rank);
-      }
-    }
+    // 简化前端判断，所有规则判断交给后端
     // goToTest() {
     //   uni.navigateTo({
     //     url: '/pages/index/index'
@@ -537,70 +451,115 @@ export default {
 </script>
 
 <style>
+/* 橙白配色像素风格 */
 .container {
-  padding: 20px;
-}
-.title {
-  font-size: 24px;
-  font-weight: bold;
+  padding: 16px;
+  background: linear-gradient(135deg, #fff5e6 0%, #fff 100%);
+  min-height: 100vh;
+  font-family: 'Courier New', monospace;
 }
 
+/* 按钮样式 - 像素风格 */
+button {
+  background: #ff8c00;
+  color: white;
+  border: 2px solid #e67300;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 0 #cc6600;
+  margin: 8px 4px;
+  font-family: 'Courier New', monospace;
+}
+
+button:disabled {
+  background: #ccc;
+  border-color: #999;
+  box-shadow: 0 4px 0 #999;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+button:not(:disabled):active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #cc6600;
+}
+
+/* 玩家列表样式 */
 .player-section {
-  margin: 20px 0;
-  padding: 15px;
-  background-color: #f5f5f5;
+  margin: 16px 0;
+  padding: 16px;
+  background: white;
   border-radius: 8px;
+  border: 2px solid #ff8c00;
+  box-shadow: 0 4px 0 #e67300;
 }
 
 .player-section h3 {
-  margin-bottom: 10px;
-  color: #333;
+  margin-bottom: 12px;
+  color: #ff8c00;
+  font-size: 18px;
+  text-align: center;
+  border-bottom: 2px solid #ff8c00;
+  padding-bottom: 8px;
 }
 
+/* 手牌区域样式 */
 .cards-section {
-  margin: 20px 0;
-  padding: 15px;
-  background-color: #f9f9f9;
+  margin: 16px 0;
+  padding: 16px;
+  background: white;
   border-radius: 8px;
+  border: 2px solid #ff8c00;
+  box-shadow: 0 4px 0 #e67300;
 }
 
 .cards-section h3 {
-  margin-bottom: 15px;
-  color: #333;
+  margin-bottom: 16px;
+  color: #ff8c00;
+  font-size: 18px;
+  text-align: center;
+  border-bottom: 2px solid #ff8c00;
+  padding-bottom: 8px;
 }
 
 .cards-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
+  justify-content: center;
 }
 
 .card-item {
-  width: 60px;
-  height: 80px;
+  width: 64px;
+  height: 88px;
 }
 
+/* 卡牌样式 - 像素风格 */
 .card {
   width: 100%;
   height: 100%;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  background-color: white;
+  border: 2px solid #333;
+  border-radius: 6px;
+  background: white;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   position: relative;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 4px 0 #666;
 }
 
 .card.selected {
-  border: 2px solid #007AFF;
-  background-color: #f0f8ff;
-  transform: translateY(-5px);
-  box-shadow: 0 4px 8px rgba(0,122,255,0.3);
+  border: 3px solid #ff8c00;
+  background: #fff5e6;
+  transform: translateY(-4px);
+  box-shadow: 0 6px 0 #e67300;
 }
 
 .card-hearts {
@@ -624,168 +583,155 @@ export default {
 }
 
 .card-rank {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: bold;
 }
 
 .card-suit {
-  font-size: 20px;
-  margin-top: 5px;
+  font-size: 24px;
+  margin-top: 4px;
 }
 
 .selected-mark {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  color: #007AFF;
+  top: 4px;
+  right: 4px;
+  color: #ff8c00;
   font-weight: bold;
-  font-size: 12px;
+  font-size: 14px;
 }
 
+/* 选中牌区域 */
 .selected-section {
   margin-bottom: 20px;
-  padding: 15px;
-  background-color: #e8f4fd;
+  padding: 16px;
+  background: #fff5e6;
   border-radius: 8px;
-  border: 1px solid #007AFF;
+  border: 2px solid #ff8c00;
+  text-align: center;
 }
 
 .selected-section h4 {
-  margin-bottom: 10px;
-  color: #007AFF;
+  margin-bottom: 12px;
+  color: #ff8c00;
+  font-size: 16px;
 }
 
 .selected-cards {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 15px;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .action-buttons {
   display: flex;
-  gap: 10px;
+  justify-content: center;
+  gap: 12px;
 }
 
 .play-btn {
-  background-color: #007AFF;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 14px;
+  background: #4CAF50;
+  border-color: #45a049;
+  box-shadow: 0 4px 0 #3d8b40;
 }
 
 .clear-btn {
-  background-color: #ff6b6b;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 14px;
+  background: #ff6b6b;
+  border-color: #ff5252;
+  box-shadow: 0 4px 0 #ff3838;
 }
 
 /* Pass按钮样式 */
 .pass-section {
-  margin-top: 15px;
-  padding: 15px;
-  background-color: #fff3cd;
+  margin-top: 16px;
+  padding: 16px;
+  background: #fff5e6;
   border-radius: 8px;
-  border: 1px solid #ffeaa7;
+  border: 2px solid #ff8c00;
   text-align: center;
 }
 
 .pass-btn {
-  background-color: #ffc107;
-  color: #856404;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 25px;
+  background: #ff8c00;
+  border-color: #e67300;
+  box-shadow: 0 4px 0 #cc6600;
   font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
-}
-
-.pass-btn:disabled {
-  background-color: #e0e0e0;
-  color: #9e9e9e;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-.pass-btn:not(:disabled):hover {
-  background-color: #ffb300;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(255, 193, 7, 0.4);
+  padding: 12px 24px;
 }
 
 .pass-hint {
   display: block;
   margin-top: 8px;
   font-size: 12px;
-  color: #856404;
+  color: #ff8c00;
   font-style: italic;
 }
 
 /* 出牌权显示样式 */
 .turn-section {
-  margin: 20px 0;
-  padding: 15px;
+  margin: 16px 0;
+  padding: 16px;
   border-radius: 8px;
   text-align: center;
+  background: white;
+  border: 2px solid #ff8c00;
+  box-shadow: 0 4px 0 #e67300;
 }
 
 .turn-indicator {
   padding: 12px 20px;
-  border-radius: 25px;
+  border-radius: 6px;
   font-size: 16px;
   font-weight: bold;
   transition: all 0.3s ease;
 }
 
 .your-turn {
-  background-color: #4CAF50;
+  background: #ff8c00;
   color: white;
-  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
-  animation: pulse 2s infinite;
+  box-shadow: 0 4px 0 #e67300;
+  animation: pixelPulse 1s infinite;
 }
 
 .other-turn {
-  background-color: #ff9800;
-  color: white;
-  box-shadow: 0 2px 4px rgba(255, 152, 0, 0.3);
+  background: #ffb366;
+  color: #333;
+  box-shadow: 0 4px 0 #e67300;
 }
 
 .turn-text {
   font-size: 16px;
 }
 
-@keyframes pulse {
-  0% { transform: scale(1); }
+@keyframes pixelPulse {
+  0%, 100% { transform: scale(1); }
   50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
 }
 
 /* 牌堆样式 */
 .piles-section {
-  margin: 20px 0;
-  padding: 15px;
-  background-color: #f0f8ff;
+  margin: 16px 0;
+  padding: 16px;
+  background: white;
   border-radius: 8px;
-  border: 1px solid #007AFF;
+  border: 2px solid #ff8c00;
+  box-shadow: 0 4px 0 #e67300;
 }
 
 .piles-section h3 {
-  margin-bottom: 15px;
-  color: #007AFF;
+  margin-bottom: 16px;
+  color: #ff8c00;
+  font-size: 18px;
+  text-align: center;
+  border-bottom: 2px solid #ff8c00;
+  padding-bottom: 8px;
 }
 
 .piles-container {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
+  gap: 12px;
 }
 
 .pile-item {
@@ -796,54 +742,54 @@ export default {
 .pile {
   width: 120px;
   height: 100px;
-  border: 2px solid #ccc;
-  border-radius: 8px;
-  background-color: white;
+  border: 2px solid #333;
+  border-radius: 6px;
+  background: white;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 10px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 0 #666;
   transition: all 0.3s ease;
 }
 
 .pile-hearts {
   border-color: #e74c3c;
-  background-color: #ffeaea;
+  background: #ffeaea;
 }
 
 .pile-diamonds {
   border-color: #e74c3c;
-  background-color: #ffeaea;
+  background: #ffeaea;
 }
 
 .pile-spades {
   border-color: #2c3e50;
-  background-color: #f0f0f0;
+  background: #f0f0f0;
 }
 
 .pile-clubs {
   border-color: #2c3e50;
-  background-color: #f0f0f0;
+  background: #f0f0f0;
 }
 
 .pile-suit {
   font-size: 24px;
   font-weight: bold;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
 }
 
 .pile-count {
   font-size: 12px;
   color: #666;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 
 .pile-top-card {
   font-size: 14px;
   font-weight: bold;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 
 .pile-empty {
@@ -860,7 +806,7 @@ export default {
 
 /* 牌堆序列样式 */
 .pile-cards {
-  margin-top: 8px;
+  margin-top: 6px;
   width: 100%;
 }
 
@@ -872,7 +818,7 @@ export default {
   font-size: 10px;
   color: #666;
   display: block;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 
 .card-sequence {
@@ -884,25 +830,43 @@ export default {
 }
 
 .sequence-card {
-  background-color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.9);
   padding: 1px 3px;
   border-radius: 2px;
   border: 1px solid #ddd;
 }
 
 .seven-card {
-  background-color: #ffeb3b;
+  background: #ffeb3b;
   font-weight: bold;
-  border-color: #ff9800;
+  border-color: #ff8c00;
 }
 
+/* 列表样式 */
 ul {
   list-style-type: none;
   padding: 0;
 }
 
 li {
-  padding: 5px 0;
+  padding: 6px 0;
   border-bottom: 1px solid #eee;
+  text-align: center;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .container {
+    padding: 12px;
+  }
+  
+  .piles-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .card-item {
+    width: 56px;
+    height: 80px;
+  }
 }
 </style>
