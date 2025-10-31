@@ -1,17 +1,18 @@
 {
   "pages": [
+    "pages/menu/menu",
     "pages/home/home",
     "pages/index/index"
   ],
   "window": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "uni-app",
-    "navigationBarBackgroundColor": "#F8F8F8",
+    "navigationBarTitleText": "7卡接龙",
+    "navigationBarBackgroundColor": "#ff8c00",
     "backgroundColor": "#F8F8F8"
   },
   "tabBar": {
     "color": "#7A7E83",
-    "selectedColor": "#007AFF",
+    "selectedColor": "#ff8c00",
     "borderStyle": "black",
     "backgroundColor": "#ffffff",
     "list": [

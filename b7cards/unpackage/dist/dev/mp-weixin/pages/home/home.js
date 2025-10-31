@@ -32,20 +32,26 @@ const _sfc_main = {
     this.setupWebSocketListener();
   },
   methods: {
+    // 返回菜单
+    goBack() {
+      common_vendor.index.navigateTo({
+        url: "/pages/menu/menu"
+      });
+    },
     setupWebSocketListener() {
       if (app.globalData.socketTask && app.globalData.isConnected) {
-        common_vendor.index.__f__("log", "at pages/home/home.vue:140", "监听器设置成功");
+        common_vendor.index.__f__("log", "at pages/home/home.vue:155", "监听器设置成功");
         this.canbutton = true;
         app.globalData.socketTask.onMessage((res) => {
-          common_vendor.index.__f__("log", "at pages/home/home.vue:144", "Home页面收到WebSocket消息:", res);
+          common_vendor.index.__f__("log", "at pages/home/home.vue:159", "Home页面收到WebSocket消息:", res);
           try {
             const messageData = JSON.parse(res.data);
             if (messageData.type == "syninformation") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:150", "进入到同步数组if");
+              common_vendor.index.__f__("log", "at pages/home/home.vue:165", "进入到同步数组if");
               this.playerlist = messageData.content;
             }
             if (messageData.type == "alert") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:156", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:171", messageData.content);
               common_vendor.index.showToast({
                 title: messageData.content,
                 icon: "error",
@@ -53,7 +59,7 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "gameStartRes") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:164", "收到游戏开始响应，手牌信息:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:179", "收到游戏开始响应，手牌信息:", messageData.content);
               this.playerCards = messageData.content.playerCards || [];
               this.gameStatus = "playing";
               this.selectedCard = null;
@@ -73,7 +79,7 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "pileUpdate") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:191", "收到牌堆更新消息:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:206", "收到牌堆更新消息:", messageData.content);
               this.gamePiles = messageData.content.pileInfo;
               if (messageData.content.currentPlayer) {
                 this.currentPlayer = messageData.content.currentPlayer;
@@ -90,7 +96,7 @@ const _sfc_main = {
               }
             }
             if (messageData.type == "playCardSuccess") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:216", "出牌成功:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:231", "出牌成功:", messageData.content);
               common_vendor.index.showToast({
                 title: messageData.content,
                 icon: "success",
@@ -98,7 +104,7 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "playCardFail") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:226", "出牌失败:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:241", "出牌失败:", messageData.content);
               common_vendor.index.showToast({
                 title: messageData.content,
                 icon: "error",
@@ -106,7 +112,7 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "passSuccess") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:236", "Pass成功:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:251", "Pass成功:", messageData.content);
               if (messageData.content.nextPlayer) {
                 this.currentPlayer = messageData.content.nextPlayer;
                 this.isYourTurn = this.currentPlayer === app.globalData.diviceid;
@@ -119,7 +125,7 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "passFail") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:255", "Pass失败:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:270", "Pass失败:", messageData.content);
               common_vendor.index.showToast({
                 title: messageData.content,
                 icon: "error",
@@ -127,21 +133,21 @@ const _sfc_main = {
               });
             }
           } catch (error) {
-            common_vendor.index.__f__("error", "at pages/home/home.vue:264", "消息解析失败:", error, "原始数据:", res.data);
+            common_vendor.index.__f__("error", "at pages/home/home.vue:279", "消息解析失败:", error, "原始数据:", res.data);
           }
         });
         this.isListening = true;
-        common_vendor.index.__f__("log", "at pages/home/home.vue:271", "Home页面WebSocket监听器已设置");
+        common_vendor.index.__f__("log", "at pages/home/home.vue:286", "Home页面WebSocket监听器已设置");
       } else {
-        common_vendor.index.__f__("log", "at pages/home/home.vue:273", "WebSocket未连接，无法设置监听器");
+        common_vendor.index.__f__("log", "at pages/home/home.vue:288", "WebSocket未连接，无法设置监听器");
         setTimeout(() => {
           this.setupWebSocketListener();
         }, 2e3);
       }
     },
     SynInformation() {
-      common_vendor.index.__f__("log", "at pages/home/home.vue:281", "是否成功连接" + app.globalData.isConnected);
-      common_vendor.index.__f__("log", "at pages/home/home.vue:282", "socketTask:" + app.globalData.socketTask);
+      common_vendor.index.__f__("log", "at pages/home/home.vue:296", "是否成功连接" + app.globalData.isConnected);
+      common_vendor.index.__f__("log", "at pages/home/home.vue:297", "socketTask:" + app.globalData.socketTask);
       if (app.globalData.isConnected && app.globalData.socketTask) {
         const message = {
           type: "system",
@@ -152,10 +158,10 @@ const _sfc_main = {
           data: JSON.stringify(message),
           success: () => {
             this.isConnected = true;
-            common_vendor.index.__f__("log", "at pages/home/home.vue:296", "同步信息成功");
+            common_vendor.index.__f__("log", "at pages/home/home.vue:311", "同步信息成功");
           },
           fail: (err) => {
-            common_vendor.index.__f__("error", "at pages/home/home.vue:301", "同步用户信息失败:", err);
+            common_vendor.index.__f__("error", "at pages/home/home.vue:316", "同步用户信息失败:", err);
           }
         });
       } else {
@@ -175,10 +181,10 @@ const _sfc_main = {
         data: JSON.stringify(message),
         success: () => {
           this.isConnected = true;
-          common_vendor.index.__f__("log", "at pages/home/home.vue:323", "发送开始游戏请求");
+          common_vendor.index.__f__("log", "at pages/home/home.vue:338", "发送开始游戏请求");
         },
         fail: (err) => {
-          common_vendor.index.__f__("error", "at pages/home/home.vue:328", "发送卡开始请求失败:", err);
+          common_vendor.index.__f__("error", "at pages/home/home.vue:343", "发送卡开始请求失败:", err);
         }
       });
     },
@@ -218,7 +224,7 @@ const _sfc_main = {
         });
         return;
       }
-      common_vendor.index.__f__("log", "at pages/home/home.vue:368", "出牌:", this.selectedCard);
+      common_vendor.index.__f__("log", "at pages/home/home.vue:383", "出牌:", this.selectedCard);
       const message = {
         type: "playCard",
         playerid: app.globalData.diviceid,
@@ -227,10 +233,10 @@ const _sfc_main = {
       app.globalData.socketTask.send({
         data: JSON.stringify(message),
         success: () => {
-          common_vendor.index.__f__("log", "at pages/home/home.vue:381", "出牌请求发送成功，等待服务器验证");
+          common_vendor.index.__f__("log", "at pages/home/home.vue:396", "出牌请求发送成功，等待服务器验证");
         },
         fail: (err) => {
-          common_vendor.index.__f__("error", "at pages/home/home.vue:386", "出牌请求发送失败:", err);
+          common_vendor.index.__f__("error", "at pages/home/home.vue:401", "出牌请求发送失败:", err);
           common_vendor.index.showToast({
             title: "出牌请求发送失败",
             icon: "none",
@@ -249,7 +255,7 @@ const _sfc_main = {
         });
         return;
       }
-      common_vendor.index.__f__("log", "at pages/home/home.vue:407", "玩家选择Pass");
+      common_vendor.index.__f__("log", "at pages/home/home.vue:422", "玩家选择Pass");
       const message = {
         type: "passTurn",
         playerid: app.globalData.diviceid
@@ -257,10 +263,10 @@ const _sfc_main = {
       app.globalData.socketTask.send({
         data: JSON.stringify(message),
         success: () => {
-          common_vendor.index.__f__("log", "at pages/home/home.vue:418", "Pass请求发送成功");
+          common_vendor.index.__f__("log", "at pages/home/home.vue:433", "Pass请求发送成功");
         },
         fail: (err) => {
-          common_vendor.index.__f__("error", "at pages/home/home.vue:421", "Pass请求发送失败:", err);
+          common_vendor.index.__f__("error", "at pages/home/home.vue:436", "Pass请求发送失败:", err);
           common_vendor.index.showToast({
             title: "Pass请求发送失败",
             icon: "none",
@@ -289,73 +295,72 @@ const _sfc_main = {
 };
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return common_vendor.e({
-    a: common_vendor.o((...args) => $options.SynInformation && $options.SynInformation(...args)),
-    b: !$data.canbutton,
-    c: common_vendor.o((...args) => $options.gameStart && $options.gameStart(...args)),
-    d: !$data.isConnected && !$data.canbutton,
-    e: $data.gameStatus === "playing" && $data.currentPlayer
+    a: common_vendor.o((...args) => $options.goBack && $options.goBack(...args)),
+    b: common_vendor.o((...args) => $options.SynInformation && $options.SynInformation(...args)),
+    c: !$data.canbutton,
+    d: common_vendor.o((...args) => $options.gameStart && $options.gameStart(...args)),
+    e: !$data.isConnected && !$data.canbutton,
+    f: $data.gameStatus === "playing" && $data.currentPlayer
   }, $data.gameStatus === "playing" && $data.currentPlayer ? common_vendor.e({
-    f: $data.isYourTurn
+    g: $data.isYourTurn
   }, $data.isYourTurn ? {} : {
-    g: common_vendor.t($data.currentPlayer)
+    h: common_vendor.t($data.currentPlayer)
   }, {
-    h: common_vendor.n($data.isYourTurn ? "your-turn" : "other-turn")
+    i: common_vendor.n($data.isYourTurn ? "your-turn" : "other-turn")
   }) : {}, {
-    i: $data.gamePiles
+    j: $data.gamePiles
   }, $data.gamePiles ? {
-    j: common_vendor.f($data.gamePiles, (pile, suit, i0) => {
+    k: common_vendor.f($data.gamePiles, (pile, suit, i0) => {
       return common_vendor.e({
-        a: common_vendor.t($options.getSuitSymbol(suit)),
-        b: common_vendor.t(pile.count),
-        c: pile.cards && pile.cards.length > 0
-      }, pile.cards && pile.cards.length > 0 ? {
+        a: pile.cards && pile.cards.length > 0
+      }, pile.cards && pile.cards.length > 0 ? common_vendor.e({
+        b: common_vendor.t($options.getSuitSymbol(suit)),
+        c: common_vendor.t(pile.count),
         d: common_vendor.f(pile.cards, (entry, index, i1) => {
-          return common_vendor.e({
+          return {
             a: common_vendor.t(entry.card.rank),
             b: common_vendor.t($options.getSuitSymbol(entry.card.suit)),
-            c: index < pile.cards.length - 1
-          }, index < pile.cards.length - 1 ? {} : {}, {
-            d: index,
-            e: common_vendor.n(entry.card.rank === "7" ? "seven-card" : "")
-          });
-        })
-      } : {}, {
+            c: index,
+            d: common_vendor.n("card-" + entry.card.suit),
+            e: common_vendor.n(entry.card.rank === "7" ? "seven-card" : ""),
+            f: index > 0 ? "-20px" : "0"
+          };
+        }),
         e: pile.playedBy
       }, pile.playedBy ? {
         f: common_vendor.t(pile.playedBy)
-      } : {}, {
-        g: common_vendor.n("pile-" + suit),
-        h: suit
+      } : {}) : {}, {
+        g: suit
       });
     })
   } : {}, {
-    k: common_vendor.t($data.playerlist.length),
-    l: common_vendor.f($data.playerlist, (item, index, i0) => {
+    l: common_vendor.t($data.playerlist.length),
+    m: common_vendor.f($data.playerlist, (item, index, i0) => {
       return {
         a: common_vendor.t(index + 1),
         b: common_vendor.t(item.deviceId || item),
         c: index
       };
     }),
-    m: $data.playerCards.length > 0
+    n: $data.playerCards.length > 0
   }, $data.playerCards.length > 0 ? common_vendor.e({
-    n: common_vendor.t($data.playerCards.length),
-    o: $data.selectedCard
+    o: common_vendor.t($data.playerCards.length),
+    p: $data.selectedCard
   }, $data.selectedCard ? common_vendor.e({
-    p: common_vendor.t($data.selectedCard.rank),
-    q: common_vendor.t($options.getSuitSymbol($data.selectedCard.suit)),
-    r: common_vendor.n("card-" + $data.selectedCard.suit),
-    s: common_vendor.o((...args) => $options.playCard && $options.playCard(...args)),
-    t: common_vendor.o((...args) => $options.clearSelection && $options.clearSelection(...args)),
-    v: $data.isYourTurn && $data.gameStatus === "playing"
+    q: common_vendor.t($data.selectedCard.rank),
+    r: common_vendor.t($options.getSuitSymbol($data.selectedCard.suit)),
+    s: common_vendor.n("card-" + $data.selectedCard.suit),
+    t: common_vendor.o((...args) => $options.playCard && $options.playCard(...args)),
+    v: common_vendor.o((...args) => $options.clearSelection && $options.clearSelection(...args)),
+    w: $data.isYourTurn && $data.gameStatus === "playing"
   }, $data.isYourTurn && $data.gameStatus === "playing" ? common_vendor.e({
-    w: common_vendor.o((...args) => $options.passTurn && $options.passTurn(...args)),
-    x: !$data.canPass,
-    y: !$data.canPass
+    x: common_vendor.o((...args) => $options.passTurn && $options.passTurn(...args)),
+    y: !$data.canPass,
+    z: !$data.canPass
   }, !$data.canPass ? {
-    z: common_vendor.t($data.passHint)
+    A: common_vendor.t($data.passHint)
   } : {}) : {}) : {}, {
-    A: common_vendor.f($data.playerCards, (card, index, i0) => {
+    B: common_vendor.f($data.playerCards, (card, index, i0) => {
       return common_vendor.e({
         a: common_vendor.t(card.rank),
         b: common_vendor.t($options.getSuitSymbol(card.suit)),

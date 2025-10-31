@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "主菜单",
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": false,
+  "usingComponents": {}
+}

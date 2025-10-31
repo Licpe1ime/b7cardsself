@@ -233,7 +233,7 @@ button:not(:disabled):active {
 }
 }
 
-/* 牌堆样式 */
+/* 牌堆样式 - 只在有牌时显示 */
 .piles-section {
   margin: 16px 0;
   padding: 16px;
@@ -251,27 +251,22 @@ button:not(:disabled):active {
   padding-bottom: 8px;
 }
 .piles-container {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 20px;
+  overflow-x: auto;
+  padding: 8px 0;
+  min-height: 120px;
 }
 .pile-item {
-  display: flex;
-  justify-content: center;
+  flex-shrink: 0;
 }
 .pile {
-  width: 120px;
-  height: 100px;
-  border: 2px solid #333;
-  border-radius: 6px;
-  background: white;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 10px;
-  box-shadow: 0 4px 0 #666;
-  transition: all 0.3s ease;
+  padding: 8px;
 }
 .pile-hearts {
   border-color: #e74c3c;
@@ -315,37 +310,102 @@ button:not(:disabled):active {
   text-align: center;
 }
 
-/* 牌堆序列样式 */
+/* 牌堆标题样式 */
+.pile-header {
+  text-align: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+.pile-suit {
+  font-size: 20px;
+  font-weight: bold;
+  margin-right: 8px;
+}
+.pile-count {
+  font-size: 12px;
+  color: #666;
+}
+
+/* 牌堆序列样式 - 斗地主式横向叠放 */
 .pile-cards {
-  margin-top: 6px;
   width: 100%;
+  min-height: 80px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
 }
 .pile-sequence {
-  text-align: center;
-}
-.pile-sequence-label {
-  font-size: 10px;
-  color: #666;
-  display: block;
-  margin-bottom: 2px;
-}
-.card-sequence {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: row;
+  align-items: flex-start;
+  min-height: 80px;
+  position: relative;
+}
+
+/* 牌堆中的单张牌样式 */
+.pile-card {
+  width: 50px;
+  height: 70px;
+  border: 2px solid #333;
+  border-radius: 4px;
+  background: white;
+  display: flex;
+  flex-direction: column;
   justify-content: center;
-  gap: 2px;
-  font-size: 10px;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s ease;
 }
-.sequence-card {
-  background: rgba(255, 255, 255, 0.9);
-  padding: 1px 3px;
-  border-radius: 2px;
-  border: 1px solid #ddd;
+.pile-card-hearts {
+  color: #e74c3c;
+  border-color: #e74c3c;
 }
-.seven-card {
+.pile-card-diamonds {
+  color: #e74c3c;
+  border-color: #e74c3c;
+}
+.pile-card-spades {
+  color: #2c3e50;
+  border-color: #2c3e50;
+}
+.pile-card-clubs {
+  color: #2c3e50;
+  border-color: #2c3e50;
+}
+.pile-card .card-rank {
+  font-size: 14px;
+  font-weight: bold;
+}
+.pile-card .card-suit {
+  font-size: 18px;
+  margin-top: 2px;
+}
+.pile-card.seven-card {
   background: #ffeb3b;
   font-weight: bold;
   border-color: #ff8c00;
+  box-shadow: 0 4px 8px rgba(255, 140, 0, 0.3);
+  z-index: 10;
+}
+
+/* 空牌堆样式 */
+.pile-empty {
+  font-size: 14px;
+  color: #999;
+  font-style: italic;
+  text-align: center;
+  margin-top: 30px;
+}
+
+/* 最后出牌者信息 */
+.pile-player {
+  font-size: 10px;
+  color: #888;
+  text-align: center;
+  margin-top: 8px;
 }
 
 /* 列表样式 */
@@ -359,6 +419,31 @@ li {
   text-align: center;
 }
 
+/* 返回按钮样式 */
+.back-button {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid #ff8c00;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+.back-button:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.back-text {
+  font-size: 14px;
+  font-weight: bold;
+  color: #ff8c00;
+  font-family: 'Courier New', monospace;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
 .container {
@@ -370,5 +455,13 @@ li {
 .card-item {
     width: 56px;
     height: 80px;
+}
+.back-button {
+    top: 10px;
+    left: 10px;
+    padding: 6px 12px;
+}
+.back-text {
+    font-size: 12px;
 }
 }

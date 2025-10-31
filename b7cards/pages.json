@@ -1,6 +1,13 @@
 {
 	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
-	
+		{
+			"path": "pages/menu/menu",
+			"style": {
+				"navigationBarTitleText": "主菜单",
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": false
+			}
+		},
 		{
 		      "path": "pages/home/home",
 		      "style": {
@@ -18,7 +25,7 @@
 	],
 	"tabBar": {
 	    "color": "#7A7E83",
-	    "selectedColor": "#007AFF",
+	    "selectedColor": "#ff8c00",
 	    "borderStyle": "black",
 	    "backgroundColor": "#ffffff",
 	    "list": [
@@ -35,8 +42,8 @@
 	  
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "uni-app",
-		"navigationBarBackgroundColor": "#F8F8F8",
+		"navigationBarTitleText": "7卡接龙",
+		"navigationBarBackgroundColor": "#ff8c00",
 		"backgroundColor": "#F8F8F8"
 	},
 	"uniIdRouter": {}

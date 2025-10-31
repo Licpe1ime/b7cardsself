@@ -1,5 +1,10 @@
 <template>
   <view class="container">
+    <!-- 返回按钮 -->
+    <view class="back-button" @click="goBack">
+      <text class="back-text">← 返回菜单</text>
+    </view>
+    
 	<button @click="SynInformation" :disabled = "!canbutton"> 同步信息 </button>
 	<button @click="gameStart" :disabled = "!isConnected && !canbutton"> 开始游戏 </button>
     
@@ -11,36 +16,39 @@
       </view>
     </view>
     
-    <!-- 牌堆显示 -->
+    <!-- 牌堆显示 - 只在有牌时显示 -->
     <view class="piles-section" v-if="gamePiles">
       <h3>牌堆</h3>
       <view class="piles-container">
-        <view v-for="(pile, suit) in gamePiles" :key="suit" class="pile-item">
-          <view :class="['pile', 'pile-' + suit]">
-            <text class="pile-suit">{{ getSuitSymbol(suit) }}</text>
-            <text class="pile-count">{{ pile.count }}张</text>
-            
-            <!-- 显示完整的牌堆序列 -->
-            <view class="pile-cards" v-if="pile.cards && pile.cards.length > 0">
-              <view class="pile-sequence">
-                <text class="pile-sequence-label">牌堆序列:</text>
-                <view class="card-sequence">
-                  <text 
+        <view v-for="(pile, suit) in gamePiles" :key="suit">
+          <!-- 只在有牌时显示牌堆 -->
+          <view v-if="pile.cards && pile.cards.length > 0" class="pile-item">
+            <view class="pile">
+              <!-- 牌堆标题 - 显示花色和牌数 -->
+              <view class="pile-header">
+                <text class="pile-suit">{{ getSuitSymbol(suit) }}</text>
+                <text class="pile-count">{{ pile.count }}张</text>
+              </view>
+              
+              <!-- 牌堆序列 - 横向展开，每张牌完整显示 -->
+              <view class="pile-cards">
+                <view class="pile-sequence">
+                  <view 
                     v-for="(entry, index) in pile.cards" 
                     :key="index"
-                    :class="['sequence-card', entry.card.rank === '7' ? 'seven-card' : '']"
+                    :class="['pile-card', 'card-' + entry.card.suit, entry.card.rank === '7' ? 'seven-card' : '']"
+                    :style="{ marginLeft: index > 0 ? '-20px' : '0' }"
                   >
-                    {{ entry.card.rank }}{{ getSuitSymbol(entry.card.suit) }}
-                    <span v-if="index < pile.cards.length - 1">→</span>
-                  </text>
+                    <text class="card-rank">{{ entry.card.rank }}</text>
+                    <text class="card-suit">{{ getSuitSymbol(entry.card.suit) }}</text>
+                  </view>
                 </view>
               </view>
+              
+              <text v-if="pile.playedBy" class="pile-player">
+                最后出牌: {{ pile.playedBy }}
+              </text>
             </view>
-            
-            <text v-else class="pile-empty">空</text>
-            <text v-if="pile.playedBy" class="pile-player">
-              最后出牌: {{ pile.playedBy }}
-            </text>
           </view>
         </view>
       </view>
@@ -135,6 +143,13 @@ export default {
     this.setupWebSocketListener();
   },
   methods: {
+    // 返回菜单
+    goBack() {
+      uni.navigateTo({
+        url: '/pages/menu/menu'
+      });
+    },
+    
     setupWebSocketListener() {
       if (app.globalData.socketTask && app.globalData.isConnected) {
 		  console.log("监听器设置成功")
@@ -709,7 +724,7 @@ button:not(:disabled):active {
   50% { transform: scale(1.05); }
 }
 
-/* 牌堆样式 */
+/* 牌堆样式 - 只在有牌时显示 */
 .piles-section {
   margin: 16px 0;
   padding: 16px;
@@ -729,29 +744,24 @@ button:not(:disabled):active {
 }
 
 .piles-container {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 20px;
+  overflow-x: auto;
+  padding: 8px 0;
+  min-height: 120px;
 }
 
 .pile-item {
-  display: flex;
-  justify-content: center;
+  flex-shrink: 0;
 }
 
 .pile {
-  width: 120px;
-  height: 100px;
-  border: 2px solid #333;
-  border-radius: 6px;
-  background: white;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 10px;
-  box-shadow: 0 4px 0 #666;
-  transition: all 0.3s ease;
+  padding: 8px;
 }
 
 .pile-hearts {
@@ -804,42 +814,112 @@ button:not(:disabled):active {
   text-align: center;
 }
 
-/* 牌堆序列样式 */
+/* 牌堆标题样式 */
+.pile-header {
+  text-align: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.pile-suit {
+  font-size: 20px;
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+.pile-count {
+  font-size: 12px;
+  color: #666;
+}
+
+/* 牌堆序列样式 - 斗地主式横向叠放 */
 .pile-cards {
-  margin-top: 6px;
   width: 100%;
+  min-height: 80px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
 }
 
 .pile-sequence {
-  text-align: center;
-}
-
-.pile-sequence-label {
-  font-size: 10px;
-  color: #666;
-  display: block;
-  margin-bottom: 2px;
-}
-
-.card-sequence {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: row;
+  align-items: flex-start;
+  min-height: 80px;
+  position: relative;
+}
+
+/* 牌堆中的单张牌样式 */
+.pile-card {
+  width: 50px;
+  height: 70px;
+  border: 2px solid #333;
+  border-radius: 4px;
+  background: white;
+  display: flex;
+  flex-direction: column;
   justify-content: center;
-  gap: 2px;
-  font-size: 10px;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s ease;
 }
 
-.sequence-card {
-  background: rgba(255, 255, 255, 0.9);
-  padding: 1px 3px;
-  border-radius: 2px;
-  border: 1px solid #ddd;
+.pile-card-hearts {
+  color: #e74c3c;
+  border-color: #e74c3c;
 }
 
-.seven-card {
+.pile-card-diamonds {
+  color: #e74c3c;
+  border-color: #e74c3c;
+}
+
+.pile-card-spades {
+  color: #2c3e50;
+  border-color: #2c3e50;
+}
+
+.pile-card-clubs {
+  color: #2c3e50;
+  border-color: #2c3e50;
+}
+
+.pile-card .card-rank {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.pile-card .card-suit {
+  font-size: 18px;
+  margin-top: 2px;
+}
+
+.pile-card.seven-card {
   background: #ffeb3b;
   font-weight: bold;
   border-color: #ff8c00;
+  box-shadow: 0 4px 8px rgba(255, 140, 0, 0.3);
+  z-index: 10;
+}
+
+/* 空牌堆样式 */
+.pile-empty {
+  font-size: 14px;
+  color: #999;
+  font-style: italic;
+  text-align: center;
+  margin-top: 30px;
+}
+
+/* 最后出牌者信息 */
+.pile-player {
+  font-size: 10px;
+  color: #888;
+  text-align: center;
+  margin-top: 8px;
 }
 
 /* 列表样式 */
@@ -852,6 +932,33 @@ li {
   padding: 6px 0;
   border-bottom: 1px solid #eee;
   text-align: center;
+}
+
+/* 返回按钮样式 */
+.back-button {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid #ff8c00;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.back-button:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.back-text {
+  font-size: 14px;
+  font-weight: bold;
+  color: #ff8c00;
+  font-family: 'Courier New', monospace;
 }
 
 /* 响应式设计 */
@@ -867,6 +974,16 @@ li {
   .card-item {
     width: 56px;
     height: 80px;
+  }
+  
+  .back-button {
+    top: 10px;
+    left: 10px;
+    padding: 6px 12px;
+  }
+  
+  .back-text {
+    font-size: 12px;
   }
 }
 </style>
