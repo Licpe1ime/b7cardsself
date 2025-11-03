@@ -64,20 +64,17 @@
 				}
 				// ----------------------------------------------------这里放着url
 				const deviceId = uni.getSystemInfoSync().deviceId || generateDeviceId();
-				const socketUrl = 'ws://192.168.233.118:3001?deviceId=' + deviceId;
+				const socketUrl = 'ws://192.168.32.118:3001?deviceId=' + deviceId;
 				console.log("当前设备持有url" + socketUrl);
 				this.socketTask = uni.connectSocket({
 					url:socketUrl,
 					
-					success: (ctx) => {
+					success: () => {
 						this.connectionStatus = "连接中"
 						console.log("连接成功")
 						
-						
 						this.isConnected = true;
 						this.connectionStatus = "已连接"
-						console.log(JSON.stringify(ctx));
-						
 						
 					},
 					fail: (err) => {
@@ -86,7 +83,7 @@
 						this.handleReconnect();
 						}
 				})
-				this.socketTask.onOpen((res) => {
+				this.socketTask.onOpen(() => {
 					console.log("连接已经打开")
 					app.globalData.isConnected = true;
 					app.globalData.socketTask = this.socketTask;
@@ -187,7 +184,7 @@
 			// 					});
 			// 					}
 			// },
-			closeWebSocket(url){
+			closeWebSocket(){
 				if (this.socketTask) {
 				      // 发送关闭通知给服务器
 					
