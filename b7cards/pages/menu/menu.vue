@@ -46,9 +46,7 @@ const exitGame = () => {
     success: (result) => {
       if (result.confirm) {
         // 简化退出逻辑，使用uni的退出方法
-        uni.navigateBack({
-          delta: 999
-        });
+        wx.exitMiniProgram();
       }
     }
   });

@@ -24,12 +24,23 @@ const _sfc_main = {
       // 是否轮到当前玩家出牌
       canPass: false,
       // 是否可以pass
-      passHint: ""
+      passHint: "",
       // pass提示信息
+      filterSuit: null
+      // 当前筛选的花色，null表示显示所有
     };
   },
   onLoad() {
     this.setupWebSocketListener();
+  },
+  computed: {
+    // 筛选后的手牌
+    filteredCards() {
+      if (!this.filterSuit) {
+        return this.playerCards;
+      }
+      return this.playerCards.filter((card) => card.suit === this.filterSuit);
+    }
   },
   methods: {
     // 返回菜单
@@ -40,18 +51,18 @@ const _sfc_main = {
     },
     setupWebSocketListener() {
       if (app.globalData.socketTask && app.globalData.isConnected) {
-        common_vendor.index.__f__("log", "at pages/home/home.vue:155", "监听器设置成功");
+        common_vendor.index.__f__("log", "at pages/home/home.vue:207", "监听器设置成功");
         this.canbutton = true;
         app.globalData.socketTask.onMessage((res) => {
-          common_vendor.index.__f__("log", "at pages/home/home.vue:159", "Home页面收到WebSocket消息:", res);
+          common_vendor.index.__f__("log", "at pages/home/home.vue:211", "Home页面收到WebSocket消息:", res);
           try {
             const messageData = JSON.parse(res.data);
             if (messageData.type == "syninformation") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:165", "进入到同步数组if");
+              common_vendor.index.__f__("log", "at pages/home/home.vue:217", "进入到同步数组if");
               this.playerlist = messageData.content;
             }
             if (messageData.type == "alert") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:171", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:223", messageData.content);
               common_vendor.index.showToast({
                 title: messageData.content,
                 icon: "error",
@@ -59,7 +70,7 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "gameStartRes") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:179", "收到游戏开始响应，手牌信息:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:231", "收到游戏开始响应，手牌信息:", messageData.content);
               this.playerCards = messageData.content.playerCards || [];
               this.gameStatus = "playing";
               this.selectedCard = null;
@@ -79,7 +90,7 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "pileUpdate") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:206", "收到牌堆更新消息:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:258", "收到牌堆更新消息:", messageData.content);
               this.gamePiles = messageData.content.pileInfo;
               if (messageData.content.currentPlayer) {
                 this.currentPlayer = messageData.content.currentPlayer;
@@ -96,7 +107,7 @@ const _sfc_main = {
               }
             }
             if (messageData.type == "playCardSuccess") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:231", "出牌成功:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:283", "出牌成功:", messageData.content);
               common_vendor.index.showToast({
                 title: messageData.content,
                 icon: "success",
@@ -104,7 +115,7 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "playCardFail") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:241", "出牌失败:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:293", "出牌失败:", messageData.content);
               common_vendor.index.showToast({
                 title: messageData.content,
                 icon: "error",
@@ -112,7 +123,7 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "passSuccess") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:251", "Pass成功:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:303", "Pass成功:", messageData.content);
               if (messageData.content.nextPlayer) {
                 this.currentPlayer = messageData.content.nextPlayer;
                 this.isYourTurn = this.currentPlayer === app.globalData.diviceid;
@@ -125,7 +136,7 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "passFail") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:270", "Pass失败:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:322", "Pass失败:", messageData.content);
               common_vendor.index.showToast({
                 title: messageData.content,
                 icon: "error",
@@ -133,21 +144,21 @@ const _sfc_main = {
               });
             }
           } catch (error) {
-            common_vendor.index.__f__("error", "at pages/home/home.vue:279", "消息解析失败:", error, "原始数据:", res.data);
+            common_vendor.index.__f__("error", "at pages/home/home.vue:331", "消息解析失败:", error, "原始数据:", res.data);
           }
         });
         this.isListening = true;
-        common_vendor.index.__f__("log", "at pages/home/home.vue:286", "Home页面WebSocket监听器已设置");
+        common_vendor.index.__f__("log", "at pages/home/home.vue:338", "Home页面WebSocket监听器已设置");
       } else {
-        common_vendor.index.__f__("log", "at pages/home/home.vue:288", "WebSocket未连接，无法设置监听器");
+        common_vendor.index.__f__("log", "at pages/home/home.vue:340", "WebSocket未连接，无法设置监听器");
         setTimeout(() => {
           this.setupWebSocketListener();
         }, 2e3);
       }
     },
     SynInformation() {
-      common_vendor.index.__f__("log", "at pages/home/home.vue:296", "是否成功连接" + app.globalData.isConnected);
-      common_vendor.index.__f__("log", "at pages/home/home.vue:297", "socketTask:" + app.globalData.socketTask);
+      common_vendor.index.__f__("log", "at pages/home/home.vue:348", "是否成功连接" + app.globalData.isConnected);
+      common_vendor.index.__f__("log", "at pages/home/home.vue:349", "socketTask:" + app.globalData.socketTask);
       if (app.globalData.isConnected && app.globalData.socketTask) {
         const message = {
           type: "system",
@@ -158,10 +169,10 @@ const _sfc_main = {
           data: JSON.stringify(message),
           success: () => {
             this.isConnected = true;
-            common_vendor.index.__f__("log", "at pages/home/home.vue:311", "同步信息成功");
+            common_vendor.index.__f__("log", "at pages/home/home.vue:363", "同步信息成功");
           },
           fail: (err) => {
-            common_vendor.index.__f__("error", "at pages/home/home.vue:316", "同步用户信息失败:", err);
+            common_vendor.index.__f__("error", "at pages/home/home.vue:368", "同步用户信息失败:", err);
           }
         });
       } else {
@@ -181,10 +192,10 @@ const _sfc_main = {
         data: JSON.stringify(message),
         success: () => {
           this.isConnected = true;
-          common_vendor.index.__f__("log", "at pages/home/home.vue:338", "发送开始游戏请求");
+          common_vendor.index.__f__("log", "at pages/home/home.vue:390", "发送开始游戏请求");
         },
         fail: (err) => {
-          common_vendor.index.__f__("error", "at pages/home/home.vue:343", "发送卡开始请求失败:", err);
+          common_vendor.index.__f__("error", "at pages/home/home.vue:395", "发送卡开始请求失败:", err);
         }
       });
     },
@@ -201,6 +212,26 @@ const _sfc_main = {
         default:
           return suit;
       }
+    },
+    // 获取花色中文名称
+    getSuitName(suit) {
+      switch (suit) {
+        case "hearts":
+          return "红心";
+        case "spades":
+          return "黑桃";
+        case "clubs":
+          return "梅花";
+        case "diamonds":
+          return "方块";
+        default:
+          return suit;
+      }
+    },
+    // 设置筛选花色
+    setFilterSuit(suit) {
+      this.filterSuit = suit;
+      common_vendor.index.__f__("log", "at pages/home/home.vue:425", "筛选花色:", suit);
     },
     // 选择单张牌
     selectCard(card) {
@@ -224,7 +255,7 @@ const _sfc_main = {
         });
         return;
       }
-      common_vendor.index.__f__("log", "at pages/home/home.vue:383", "出牌:", this.selectedCard);
+      common_vendor.index.__f__("log", "at pages/home/home.vue:452", "出牌:", this.selectedCard);
       const message = {
         type: "playCard",
         playerid: app.globalData.diviceid,
@@ -233,10 +264,10 @@ const _sfc_main = {
       app.globalData.socketTask.send({
         data: JSON.stringify(message),
         success: () => {
-          common_vendor.index.__f__("log", "at pages/home/home.vue:396", "出牌请求发送成功，等待服务器验证");
+          common_vendor.index.__f__("log", "at pages/home/home.vue:465", "出牌请求发送成功，等待服务器验证");
         },
         fail: (err) => {
-          common_vendor.index.__f__("error", "at pages/home/home.vue:401", "出牌请求发送失败:", err);
+          common_vendor.index.__f__("error", "at pages/home/home.vue:470", "出牌请求发送失败:", err);
           common_vendor.index.showToast({
             title: "出牌请求发送失败",
             icon: "none",
@@ -255,7 +286,7 @@ const _sfc_main = {
         });
         return;
       }
-      common_vendor.index.__f__("log", "at pages/home/home.vue:422", "玩家选择Pass");
+      common_vendor.index.__f__("log", "at pages/home/home.vue:491", "玩家选择Pass");
       const message = {
         type: "passTurn",
         playerid: app.globalData.diviceid
@@ -263,10 +294,10 @@ const _sfc_main = {
       app.globalData.socketTask.send({
         data: JSON.stringify(message),
         success: () => {
-          common_vendor.index.__f__("log", "at pages/home/home.vue:433", "Pass请求发送成功");
+          common_vendor.index.__f__("log", "at pages/home/home.vue:502", "Pass请求发送成功");
         },
         fail: (err) => {
-          common_vendor.index.__f__("error", "at pages/home/home.vue:436", "Pass请求发送失败:", err);
+          common_vendor.index.__f__("error", "at pages/home/home.vue:505", "Pass请求发送失败:", err);
           common_vendor.index.showToast({
             title: "Pass请求发送失败",
             icon: "none",
@@ -345,22 +376,22 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     n: $data.playerCards.length > 0
   }, $data.playerCards.length > 0 ? common_vendor.e({
     o: common_vendor.t($data.playerCards.length),
-    p: $data.selectedCard
-  }, $data.selectedCard ? common_vendor.e({
-    q: common_vendor.t($data.selectedCard.rank),
-    r: common_vendor.t($options.getSuitSymbol($data.selectedCard.suit)),
-    s: common_vendor.n("card-" + $data.selectedCard.suit),
-    t: common_vendor.o((...args) => $options.playCard && $options.playCard(...args)),
-    v: common_vendor.o((...args) => $options.clearSelection && $options.clearSelection(...args)),
-    w: $data.isYourTurn && $data.gameStatus === "playing"
-  }, $data.isYourTurn && $data.gameStatus === "playing" ? common_vendor.e({
-    x: common_vendor.o((...args) => $options.passTurn && $options.passTurn(...args)),
-    y: !$data.canPass,
-    z: !$data.canPass
-  }, !$data.canPass ? {
-    A: common_vendor.t($data.passHint)
-  } : {}) : {}) : {}, {
-    B: common_vendor.f($data.playerCards, (card, index, i0) => {
+    p: common_vendor.n($data.filterSuit === null ? "filter-active" : ""),
+    q: common_vendor.o(($event) => $options.setFilterSuit(null)),
+    r: common_vendor.n($data.filterSuit === "hearts" ? "filter-active" : ""),
+    s: common_vendor.o(($event) => $options.setFilterSuit("hearts")),
+    t: common_vendor.n($data.filterSuit === "spades" ? "filter-active" : ""),
+    v: common_vendor.o(($event) => $options.setFilterSuit("spades")),
+    w: common_vendor.n($data.filterSuit === "diamonds" ? "filter-active" : ""),
+    x: common_vendor.o(($event) => $options.setFilterSuit("diamonds")),
+    y: common_vendor.n($data.filterSuit === "clubs" ? "filter-active" : ""),
+    z: common_vendor.o(($event) => $options.setFilterSuit("clubs")),
+    A: $data.filterSuit
+  }, $data.filterSuit ? {
+    B: common_vendor.t($options.getSuitName($data.filterSuit)),
+    C: common_vendor.t($options.filteredCards.length)
+  } : {}, {
+    D: common_vendor.f($options.filteredCards, (card, index, i0) => {
       return common_vendor.e({
         a: common_vendor.t(card.rank),
         b: common_vendor.t($options.getSuitSymbol(card.suit)),
@@ -372,7 +403,19 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         g: index
       });
     })
-  }) : {});
+  }) : {}, {
+    E: $data.selectedCard && $data.gameStatus === "playing"
+  }, $data.selectedCard && $data.gameStatus === "playing" ? common_vendor.e({
+    F: common_vendor.t($data.selectedCard.rank),
+    G: common_vendor.t($options.getSuitSymbol($data.selectedCard.suit)),
+    H: common_vendor.n("card-" + $data.selectedCard.suit),
+    I: common_vendor.o((...args) => $options.playCard && $options.playCard(...args)),
+    J: common_vendor.o((...args) => $options.clearSelection && $options.clearSelection(...args)),
+    K: $data.isYourTurn
+  }, $data.isYourTurn ? {
+    L: common_vendor.o((...args) => $options.passTurn && $options.passTurn(...args)),
+    M: !$data.canPass
+  } : {}) : {});
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);
 wx.createPage(MiniProgramPage);

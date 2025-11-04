@@ -21,9 +21,7 @@ const _sfc_main = /* @__PURE__ */ common_vendor.defineComponent({
         content: "确定要退出游戏吗？",
         success: (result) => {
           if (result.confirm) {
-            common_vendor.index.navigateBack({
-              delta: 999
-            });
+            common_vendor.wx$1.exitMiniProgram();
           }
         }
       });
