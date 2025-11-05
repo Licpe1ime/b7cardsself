@@ -295,27 +295,14 @@ app.ws.use(async(ctx) => {
   ctx.websocket.on('close', (code, reason) => {
     
     if(Buffer.isBuffer(reason)){
-      try {
-        message = reason.toString('utf8');
-        // 尝试解析JSON，如果不是JSON格式则直接使用原始消息
-        let constmsg;
-        try {
-          constmsg = JSON.parse(message);
-        } catch (e) {
-          // 如果不是JSON格式，直接使用原始消息
-          console.log(`连接关闭，原因: ${message}`);
-          return;
-        }
-        
-        const deviceId = constmsg.deviceId;
-        clients.delete(deviceId);
-        console.log(`设备 ${deviceId} 已关闭，原因：${constmsg.reason || '未知'}`);
-      } catch (err) {
-        console.log(`连接关闭处理错误: ${err.message}`);
-      }
-    } else {
-      console.log(`连接关闭，代码: ${code}, 原因: ${reason}`);
-    }
+    //clients.delete(deviceId); 
+    message = reason.toString('utf8');
+    let constmsg = JSON.parse(message)
+    const deviceId = constmsg.deviceId
+    clients.delete(deviceId)
+    
+    console.log(`设备 ${deviceId} 已关闭`+ "原因：" + constmsg.reason);
+   }
 
   })
 

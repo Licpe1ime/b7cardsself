@@ -68,50 +68,36 @@
     <view class="cards-section" v-if="playerCards.length > 0">
       <h3>你的手牌 ({{ playerCards.length }}张)</h3>
       
-      <!-- 花色筛选按钮 -->
-      <view class="filter-section">
-        <view class="filter-buttons">
-          <button 
-            :class="['filter-btn', filterSuit === null ? 'filter-active' : '']"
-            @click="setFilterSuit(null)"
-          >
-            全部
-          </button>
-          <button 
-            :class="['filter-btn', 'filter-hearts', filterSuit === 'hearts' ? 'filter-active' : '']"
-            @click="setFilterSuit('hearts')"
-          >
-            ♥ 红心
-          </button>
-          <button 
-            :class="['filter-btn', 'filter-spades', filterSuit === 'spades' ? 'filter-active' : '']"
-            @click="setFilterSuit('spades')"
-          >
-            ♠ 黑桃
-          </button>
-          <button 
-            :class="['filter-btn', 'filter-diamonds', filterSuit === 'diamonds' ? 'filter-active' : '']"
-            @click="setFilterSuit('diamonds')"
-          >
-            ♦ 方块
-          </button>
-          <button 
-            :class="['filter-btn', 'filter-clubs', filterSuit === 'clubs' ? 'filter-active' : '']"
-            @click="setFilterSuit('clubs')"
-          >
-            ♣ 梅花
-          </button>
+      <!-- 选中的牌 -->
+      <view class="selected-section" v-if="selectedCard">
+        <h4>已选牌</h4>
+        <view class="selected-cards">
+          <view class="card-item">
+            <view :class="['card', 'card-' + selectedCard.suit, 'selected']">
+              <text class="card-rank">{{ selectedCard.rank }}</text>
+              <text class="card-suit">{{ getSuitSymbol(selectedCard.suit) }}</text>
+            </view>
+          </view>
         </view>
-        <text v-if="filterSuit" class="filter-info">
-          当前筛选: {{ getSuitName(filterSuit) }} ({{ filteredCards.length }}张)
-        </text>
+        <view class="action-buttons">
+          <button @click="playCard" class="play-btn">出牌</button>
+          <button @click="clearSelection" class="clear-btn">取消选择</button>
+        </view>
+        
+        <!-- Pass按钮 -->
+        <view class="pass-section" v-if="isYourTurn && gameStatus === 'playing'">
+          <button @click="passTurn" class="pass-btn" :disabled="!canPass">
+            Pass
+          </button>
+          <text v-if="!canPass" class="pass-hint">
+            {{ passHint }}
+          </text>
+        </view>
       </view>
-      
-
       
       <!-- 所有手牌 -->
       <view class="cards-container">
-        <view v-for="(card, index) in filteredCards" :key="index" class="card-item">
+        <view v-for="(card, index) in playerCards" :key="index" class="card-item">
           <view 
             :class="['card', 'card-' + card.suit, selectedCard && selectedCard.id === card.id ? 'selected' : '']"
             @click="selectCard(card)"
@@ -121,52 +107,6 @@
             <text v-if="selectedCard && selectedCard.id === card.id" class="selected-mark">✓</text>
           </view>
         </view>
-      </view>
-    </view>
-    
-    <!-- 底部悬浮操作栏 -->
-    <view 
-      class="bottom-action-bar" 
-      v-if="selectedCard && gameStatus === 'playing'"
-      :style="{ 
-        left: dragPosition.x + '%', 
-        top: dragPosition.y + '%',
-        transform: 'translate(-50%, -50%)'
-      }"
-      @touchstart="startDrag"
-      @touchmove="onDrag"
-      @touchend="endDrag"
-      @touchcancel="endDrag"
-    >
-      <view class="action-bar-content">
-        <!-- 已选牌显示 -->
-        <view class="selected-card-display">
-          <view :class="['selected-card', 'card-' + selectedCard.suit]">
-            <text class="card-rank">{{ selectedCard.rank }}</text>
-            <text class="card-suit">{{ getSuitSymbol(selectedCard.suit) }}</text>
-          </view>
-          <text class="selected-text">已选牌</text>
-        </view>
-        
-        <!-- 操作按钮 -->
-        <view class="action-buttons">
-          <button @click="playCard" class="action-btn play-btn">出牌</button>
-          <button @click="clearSelection" class="action-btn clear-btn">取消</button>
-          <button 
-            v-if="isYourTurn" 
-            @click="passTurn" 
-            class="action-btn pass-btn" 
-            :disabled="!canPass"
-          >
-            Pass
-          </button>
-        </view>
-      </view>
-      
-      <!-- 拖动提示 -->
-      <view class="drag-hint">
-        <text class="drag-icon">↕</text>
-        <text class="drag-text">拖动移动</text>
       </view>
     </view>
     
@@ -196,26 +136,11 @@ export default {
 			currentPlayer: null, // 当前出牌玩家
 			isYourTurn: false, // 是否轮到当前玩家出牌
 			canPass: false, // 是否可以pass
-			passHint: '', // pass提示信息
-			filterSuit: null, // 当前筛选的花色，null表示显示所有
-			// 拖动相关数据
-			dragPosition: { x: 50, y: 50 }, // 悬浮栏位置百分比
-			isDragging: false, // 是否正在拖动
-			dragStartPos: { x: 0, y: 0 }, // 拖动开始位置
-			barStartPos: { x: 0, y: 0 } // 悬浮栏开始位置
+			passHint: '' // pass提示信息
 		}
 	},
   onLoad(){
     this.setupWebSocketListener();
-  },
-  computed: {
-    // 筛选后的手牌
-    filteredCards() {
-      if (!this.filterSuit) {
-        return this.playerCards;
-      }
-      return this.playerCards.filter(card => card.suit === this.filterSuit);
-    }
   },
   methods: {
     // 返回菜单
@@ -430,23 +355,6 @@ export default {
         default: return suit;
       }
     },
-    
-    // 获取花色中文名称
-    getSuitName(suit) {
-      switch(suit) {
-        case 'hearts': return '红心';
-        case 'spades': return '黑桃';
-        case 'clubs': return '梅花';
-        case 'diamonds': return '方块';
-        default: return suit;
-      }
-    },
-    
-    // 设置筛选花色
-    setFilterSuit(suit) {
-      this.filterSuit = suit;
-      console.log('筛选花色:', suit);
-    },
     // 选择单张牌
     selectCard(card) {
       if (this.selectedCard && this.selectedCard.id === card.id) {
@@ -553,60 +461,6 @@ export default {
     //     url: '/pages/index/index'
     //   });
     // }
-    
-    // 拖动相关方法
-    // 开始拖动
-    startDrag(event) {
-      try {
-        this.isDragging = true;
-        this.dragStartPos = {
-          x: event.touches[0].clientX,
-          y: event.touches[0].clientY
-        };
-        this.barStartPos = {
-          x: this.dragPosition.x,
-          y: this.dragPosition.y
-        };
-      } catch (error) {
-        console.error('开始拖动错误:', error);
-        this.isDragging = false;
-      }
-    },
-    
-    // 拖动中
-    onDrag(event) {
-      if (!this.isDragging) return;
-      
-      try {
-        const currentX = event.touches[0].clientX;
-        const currentY = event.touches[0].clientY;
-        
-        const deltaX = currentX - this.dragStartPos.x;
-        const deltaY = currentY - this.dragStartPos.y;
-        
-        // 使用固定值作为屏幕尺寸参考（更兼容小程序环境）
-        const screenWidth = 375; // 参考宽度
-        const screenHeight = 667; // 参考高度
-        
-        let newX = this.barStartPos.x + (deltaX / screenWidth) * 100;
-        let newY = this.barStartPos.y + (deltaY / screenHeight) * 100;
-        
-        // 限制在屏幕范围内（考虑悬浮栏大小）
-        newX = Math.max(10, Math.min(newX, 90)); // 左右各留10%边距
-        newY = Math.max(10, Math.min(newY, 90)); // 上下各留10%边距
-        
-        this.dragPosition = { x: newX, y: newY };
-      } catch (error) {
-        console.error('拖动处理错误:', error);
-        // 出错时结束拖动状态
-        this.isDragging = false;
-      }
-    },
-    
-    // 结束拖动
-    endDrag() {
-      this.isDragging = false;
-    }
   }
 }
 </script>
@@ -687,77 +541,6 @@ button:not(:disabled):active {
   padding-bottom: 8px;
 }
 
-/* 筛选区域样式 */
-.filter-section {
-  margin-bottom: 16px;
-  padding: 12px;
-  background: #fff5e6;
-  border-radius: 8px;
-  border: 2px solid #ff8c00;
-  text-align: center;
-}
-
-.filter-buttons {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.filter-btn {
-  background: #fff;
-  color: #333;
-  border: 2px solid #ccc;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 0 #999;
-  font-family: 'Courier New', monospace;
-}
-
-.filter-btn:active {
-  transform: translateY(2px);
-  box-shadow: 0 0 0 #999;
-}
-
-.filter-active {
-  background: #ff8c00;
-  color: white;
-  border-color: #e67300;
-  box-shadow: 0 2px 0 #cc6600;
-}
-
-.filter-hearts {
-  color: #e74c3c;
-  border-color: #e74c3c;
-}
-
-.filter-spades {
-  color: #2c3e50;
-  border-color: #2c3e50;
-}
-
-.filter-diamonds {
-  color: #e74c3c;
-  border-color: #e74c3c;
-}
-
-.filter-clubs {
-  color: #2c3e50;
-  border-color: #2c3e50;
-}
-
-.filter-info {
-  display: block;
-  font-size: 12px;
-  color: #ff8c00;
-  font-style: italic;
-}
-
 .cards-container {
   display: flex;
   flex-wrap: wrap;
@@ -833,7 +616,72 @@ button:not(:disabled):active {
   font-size: 14px;
 }
 
+/* 选中牌区域 */
+.selected-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #fff5e6;
+  border-radius: 8px;
+  border: 2px solid #ff8c00;
+  text-align: center;
+}
 
+.selected-section h4 {
+  margin-bottom: 12px;
+  color: #ff8c00;
+  font-size: 16px;
+}
+
+.selected-cards {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.play-btn {
+  background: #4CAF50;
+  border-color: #45a049;
+  box-shadow: 0 4px 0 #3d8b40;
+}
+
+.clear-btn {
+  background: #ff6b6b;
+  border-color: #ff5252;
+  box-shadow: 0 4px 0 #ff3838;
+}
+
+/* Pass按钮样式 */
+.pass-section {
+  margin-top: 16px;
+  padding: 16px;
+  background: #fff5e6;
+  border-radius: 8px;
+  border: 2px solid #ff8c00;
+  text-align: center;
+}
+
+.pass-btn {
+  background: #ff8c00;
+  border-color: #e67300;
+  box-shadow: 0 4px 0 #cc6600;
+  font-size: 16px;
+  padding: 12px 24px;
+}
+
+.pass-hint {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #ff8c00;
+  font-style: italic;
+}
 
 /* 出牌权显示样式 */
 .turn-section {
@@ -1136,225 +984,6 @@ li {
   
   .back-text {
     font-size: 12px;
-  }
-}
-
-/* 底部悬浮操作栏样式 - 可拖动版本 */
-.bottom-action-bar {
-  position: fixed;
-  width: 90%;
-  max-width: 400px;
-  background: rgba(255, 255, 255, 0.98);
-  border: 3px solid #ff8c00;
-  border-radius: 12px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
-  z-index: 1000;
-  animation: slideUp 0.3s ease-out;
-  cursor: move;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
-
-.bottom-action-bar:active {
-  cursor: grabbing;
-}
-
-.action-bar-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-}
-
-.selected-card-display {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.selected-card {
-  width: 50px;
-  height: 70px;
-  border: 2px solid #333;
-  border-radius: 6px;
-  background: white;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 4px 0 #666;
-  position: relative;
-}
-
-.selected-card-hearts {
-  color: #e74c3c;
-  border-color: #e74c3c;
-}
-
-.selected-card-diamonds {
-  color: #e74c3c;
-  border-color: #e74c3c;
-}
-
-.selected-card-spades {
-  color: #2c3e50;
-  border-color: #2c3e50;
-}
-
-.selected-card-clubs {
-  color: #2c3e50;
-  border-color: #2c3e50;
-}
-
-.selected-card .card-rank {
-  font-size: 16px;
-  font-weight: bold;
-}
-
-.selected-card .card-suit {
-  font-size: 20px;
-  margin-top: 2px;
-}
-
-.selected-text {
-  font-size: 14px;
-  font-weight: bold;
-  color: #ff8c00;
-  font-family: 'Courier New', monospace;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 8px;
-}
-
-.action-btn {
-  padding: 10px 20px;
-  border: 2px solid;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 0;
-  font-family: 'Courier New', monospace;
-  min-width: 70px;
-}
-
-.action-btn:disabled {
-  background: #ccc;
-  border-color: #999;
-  box-shadow: 0 4px 0 #999;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.action-btn:not(:disabled):active {
-  transform: translateY(4px);
-  box-shadow: 0 0 0;
-}
-
-.play-btn {
-  background: #4CAF50;
-  color: white;
-  border-color: #45a049;
-  box-shadow: 0 4px 0 #3d8b40;
-}
-
-.clear-btn {
-  background: #ff6b6b;
-  color: white;
-  border-color: #ff5252;
-  box-shadow: 0 4px 0 #ff3838;
-}
-
-.pass-btn {
-  background: #ff8c00;
-  color: white;
-  border-color: #e67300;
-  box-shadow: 0 4px 0 #cc6600;
-}
-
-/* 拖动提示样式 */
-.drag-hint {
-  position: absolute;
-  top: -25px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(255, 140, 0, 0.9);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 10px;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  animation: fadeInOut 2s ease-in-out infinite;
-}
-
-.drag-icon {
-  font-size: 12px;
-}
-
-.drag-text {
-  font-size: 10px;
-  font-weight: bold;
-}
-
-@keyframes fadeInOut {
-  0%, 100% { opacity: 0.7; }
-  50% { opacity: 1; }
-}
-
-/* 移动端适配 */
-@media (max-width: 768px) {
-  .bottom-action-bar {
-    width: 95%;
-  }
-  
-  .action-bar-content {
-    padding: 12px 16px;
-  }
-  
-  .action-btn {
-    padding: 8px 16px;
-    font-size: 12px;
-    min-width: 60px;
-  }
-  
-  .selected-card {
-    width: 45px;
-    height: 63px;
-  }
-  
-  .selected-card .card-rank {
-    font-size: 14px;
-  }
-  
-  .selected-card .card-suit {
-    font-size: 18px;
-  }
-  
-  .selected-text {
-    font-size: 12px;
-  }
-  
-  .drag-hint {
-    top: -20px;
-    font-size: 8px;
   }
 }
 </style>

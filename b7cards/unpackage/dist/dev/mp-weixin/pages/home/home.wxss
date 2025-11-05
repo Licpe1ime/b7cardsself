@@ -69,68 +69,6 @@ button:not(:disabled):active {
   border-bottom: 2px solid #ff8c00;
   padding-bottom: 8px;
 }
-
-/* 筛选区域样式 */
-.filter-section {
-  margin-bottom: 16px;
-  padding: 12px;
-  background: #fff5e6;
-  border-radius: 8px;
-  border: 2px solid #ff8c00;
-  text-align: center;
-}
-.filter-buttons {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-.filter-btn {
-  background: #fff;
-  color: #333;
-  border: 2px solid #ccc;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 0 #999;
-  font-family: 'Courier New', monospace;
-}
-.filter-btn:active {
-  transform: translateY(2px);
-  box-shadow: 0 0 0 #999;
-}
-.filter-active {
-  background: #ff8c00;
-  color: white;
-  border-color: #e67300;
-  box-shadow: 0 2px 0 #cc6600;
-}
-.filter-hearts {
-  color: #e74c3c;
-  border-color: #e74c3c;
-}
-.filter-spades {
-  color: #2c3e50;
-  border-color: #2c3e50;
-}
-.filter-diamonds {
-  color: #e74c3c;
-  border-color: #e74c3c;
-}
-.filter-clubs {
-  color: #2c3e50;
-  border-color: #2c3e50;
-}
-.filter-info {
-  display: block;
-  font-size: 12px;
-  color: #ff8c00;
-  font-style: italic;
-}
 .cards-container {
   display: flex;
   flex-wrap: wrap;
@@ -197,7 +135,65 @@ button:not(:disabled):active {
   font-size: 14px;
 }
 
+/* 选中牌区域 */
+.selected-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #fff5e6;
+  border-radius: 8px;
+  border: 2px solid #ff8c00;
+  text-align: center;
+}
+.selected-section h4 {
+  margin-bottom: 12px;
+  color: #ff8c00;
+  font-size: 16px;
+}
+.selected-cards {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.play-btn {
+  background: #4CAF50;
+  border-color: #45a049;
+  box-shadow: 0 4px 0 #3d8b40;
+}
+.clear-btn {
+  background: #ff6b6b;
+  border-color: #ff5252;
+  box-shadow: 0 4px 0 #ff3838;
+}
 
+/* Pass按钮样式 */
+.pass-section {
+  margin-top: 16px;
+  padding: 16px;
+  background: #fff5e6;
+  border-radius: 8px;
+  border: 2px solid #ff8c00;
+  text-align: center;
+}
+.pass-btn {
+  background: #ff8c00;
+  border-color: #e67300;
+  box-shadow: 0 4px 0 #cc6600;
+  font-size: 16px;
+  padding: 12px 24px;
+}
+.pass-hint {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #ff8c00;
+  font-style: italic;
+}
 
 /* 出牌权显示样式 */
 .turn-section {
@@ -467,198 +463,5 @@ li {
 }
 .back-text {
     font-size: 12px;
-}
-}
-
-/* 底部悬浮操作栏样式 - 可拖动版本 */
-.bottom-action-bar {
-  position: fixed;
-  width: 90%;
-  max-width: 400px;
-  background: rgba(255, 255, 255, 0.98);
-  border: 3px solid #ff8c00;
-  border-radius: 12px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-  -webkit-backdrop-filter: blur(10px);
-          backdrop-filter: blur(10px);
-  z-index: 1000;
-  animation: slideUp 0.3s ease-out;
-  cursor: move;
-  user-select: none;
-  -webkit-user-select: none;
-}
-@keyframes slideUp {
-from {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.8);
-}
-to {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-}
-}
-.bottom-action-bar:active {
-  cursor: grabbing;
-}
-.action-bar-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-}
-.selected-card-display {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.selected-card {
-  width: 50px;
-  height: 70px;
-  border: 2px solid #333;
-  border-radius: 6px;
-  background: white;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 4px 0 #666;
-  position: relative;
-}
-.selected-card-hearts {
-  color: #e74c3c;
-  border-color: #e74c3c;
-}
-.selected-card-diamonds {
-  color: #e74c3c;
-  border-color: #e74c3c;
-}
-.selected-card-spades {
-  color: #2c3e50;
-  border-color: #2c3e50;
-}
-.selected-card-clubs {
-  color: #2c3e50;
-  border-color: #2c3e50;
-}
-.selected-card .card-rank {
-  font-size: 16px;
-  font-weight: bold;
-}
-.selected-card .card-suit {
-  font-size: 20px;
-  margin-top: 2px;
-}
-.selected-text {
-  font-size: 14px;
-  font-weight: bold;
-  color: #ff8c00;
-  font-family: 'Courier New', monospace;
-}
-.action-buttons {
-  display: flex;
-  gap: 8px;
-}
-.action-btn {
-  padding: 10px 20px;
-  border: 2px solid;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 0;
-  font-family: 'Courier New', monospace;
-  min-width: 70px;
-}
-.action-btn:disabled {
-  background: #ccc;
-  border-color: #999;
-  box-shadow: 0 4px 0 #999;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-.action-btn:not(:disabled):active {
-  transform: translateY(4px);
-  box-shadow: 0 0 0;
-}
-.play-btn {
-  background: #4CAF50;
-  color: white;
-  border-color: #45a049;
-  box-shadow: 0 4px 0 #3d8b40;
-}
-.clear-btn {
-  background: #ff6b6b;
-  color: white;
-  border-color: #ff5252;
-  box-shadow: 0 4px 0 #ff3838;
-}
-.pass-btn {
-  background: #ff8c00;
-  color: white;
-  border-color: #e67300;
-  box-shadow: 0 4px 0 #cc6600;
-}
-
-/* 拖动提示样式 */
-.drag-hint {
-  position: absolute;
-  top: -25px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(255, 140, 0, 0.9);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 10px;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  animation: fadeInOut 2s ease-in-out infinite;
-}
-.drag-icon {
-  font-size: 12px;
-}
-.drag-text {
-  font-size: 10px;
-  font-weight: bold;
-}
-@keyframes fadeInOut {
-0%, 100% { opacity: 0.7;
-}
-50% { opacity: 1;
-}
-}
-
-/* 移动端适配 */
-@media (max-width: 768px) {
-.bottom-action-bar {
-    width: 95%;
-}
-.action-bar-content {
-    padding: 12px 16px;
-}
-.action-btn {
-    padding: 8px 16px;
-    font-size: 12px;
-    min-width: 60px;
-}
-.selected-card {
-    width: 45px;
-    height: 63px;
-}
-.selected-card .card-rank {
-    font-size: 14px;
-}
-.selected-card .card-suit {
-    font-size: 18px;
-}
-.selected-text {
-    font-size: 12px;
-}
-.drag-hint {
-    top: -20px;
-    font-size: 8px;
 }
 }
