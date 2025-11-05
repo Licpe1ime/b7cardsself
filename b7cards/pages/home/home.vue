@@ -125,7 +125,19 @@
     </view>
     
     <!-- 底部悬浮操作栏 -->
-    <view class="bottom-action-bar" v-if="selectedCard && gameStatus === 'playing'">
+    <view 
+      class="bottom-action-bar" 
+      v-if="selectedCard && gameStatus === 'playing'"
+      :style="{ 
+        left: dragPosition.x + '%', 
+        top: dragPosition.y + '%',
+        transform: 'translate(-50%, -50%)'
+      }"
+      @touchstart="startDrag"
+      @touchmove="onDrag"
+      @touchend="endDrag"
+      @touchcancel="endDrag"
+    >
       <view class="action-bar-content">
         <!-- 已选牌显示 -->
         <view class="selected-card-display">
@@ -149,6 +161,12 @@
             Pass
           </button>
         </view>
+      </view>
+      
+      <!-- 拖动提示 -->
+      <view class="drag-hint">
+        <text class="drag-icon">↕</text>
+        <text class="drag-text">拖动移动</text>
       </view>
     </view>
     
@@ -179,7 +197,12 @@ export default {
 			isYourTurn: false, // 是否轮到当前玩家出牌
 			canPass: false, // 是否可以pass
 			passHint: '', // pass提示信息
-			filterSuit: null // 当前筛选的花色，null表示显示所有
+			filterSuit: null, // 当前筛选的花色，null表示显示所有
+			// 拖动相关数据
+			dragPosition: { x: 50, y: 50 }, // 悬浮栏位置百分比
+			isDragging: false, // 是否正在拖动
+			dragStartPos: { x: 0, y: 0 }, // 拖动开始位置
+			barStartPos: { x: 0, y: 0 } // 悬浮栏开始位置
 		}
 	},
   onLoad(){
@@ -530,6 +553,60 @@ export default {
     //     url: '/pages/index/index'
     //   });
     // }
+    
+    // 拖动相关方法
+    // 开始拖动
+    startDrag(event) {
+      try {
+        this.isDragging = true;
+        this.dragStartPos = {
+          x: event.touches[0].clientX,
+          y: event.touches[0].clientY
+        };
+        this.barStartPos = {
+          x: this.dragPosition.x,
+          y: this.dragPosition.y
+        };
+      } catch (error) {
+        console.error('开始拖动错误:', error);
+        this.isDragging = false;
+      }
+    },
+    
+    // 拖动中
+    onDrag(event) {
+      if (!this.isDragging) return;
+      
+      try {
+        const currentX = event.touches[0].clientX;
+        const currentY = event.touches[0].clientY;
+        
+        const deltaX = currentX - this.dragStartPos.x;
+        const deltaY = currentY - this.dragStartPos.y;
+        
+        // 使用固定值作为屏幕尺寸参考（更兼容小程序环境）
+        const screenWidth = 375; // 参考宽度
+        const screenHeight = 667; // 参考高度
+        
+        let newX = this.barStartPos.x + (deltaX / screenWidth) * 100;
+        let newY = this.barStartPos.y + (deltaY / screenHeight) * 100;
+        
+        // 限制在屏幕范围内（考虑悬浮栏大小）
+        newX = Math.max(10, Math.min(newX, 90)); // 左右各留10%边距
+        newY = Math.max(10, Math.min(newY, 90)); // 上下各留10%边距
+        
+        this.dragPosition = { x: newX, y: newY };
+      } catch (error) {
+        console.error('拖动处理错误:', error);
+        // 出错时结束拖动状态
+        this.isDragging = false;
+      }
+    },
+    
+    // 结束拖动
+    endDrag() {
+      this.isDragging = false;
+    }
   }
 }
 </script>
@@ -1062,32 +1139,36 @@ li {
   }
 }
 
-/* 底部悬浮操作栏样式 */
+/* 底部悬浮操作栏样式 - 可拖动版本 */
 .bottom-action-bar {
   position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
   width: 90%;
   max-width: 400px;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.98);
   border: 3px solid #ff8c00;
   border-radius: 12px;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(10px);
   z-index: 1000;
   animation: slideUp 0.3s ease-out;
+  cursor: move;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 @keyframes slideUp {
   from {
-    transform: translateX(-50%) translateY(100px);
     opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
   }
   to {
-    transform: translateX(-50%) translateY(0);
     opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
   }
+}
+
+.bottom-action-bar:active {
+  cursor: grabbing;
 }
 
 .action-bar-content {
@@ -1206,190 +1287,42 @@ li {
   box-shadow: 0 4px 0 #cc6600;
 }
 
-/* 移动端适配 */
-@media (max-width: 768px) {
-  .bottom-action-bar {
-    width: 95%;
-    bottom: 10px;
-  }
-  
-  .action-bar-content {
-    padding: 12px 16px;
-  }
-  
-  .action-btn {
-    padding: 8px 16px;
-    font-size: 12px;
-    min-width: 60px;
-  }
-  
-  .selected-card {
-    width: 45px;
-    height: 63px;
-  }
-  
-  .selected-card .card-rank {
-    font-size: 14px;
-  }
-  
-  .selected-card .card-suit {
-    font-size: 18px;
-  }
-  
-  .selected-text {
-    font-size: 12px;
-  }
-}
-
-/* 底部悬浮操作栏样式 */
-.bottom-action-bar {
-  position: fixed;
-  bottom: 20px;
+/* 拖动提示样式 */
+.drag-hint {
+  position: absolute;
+  top: -25px;
   left: 50%;
   transform: translateX(-50%);
-  width: 90%;
-  max-width: 400px;
-  background: rgba(255, 255, 255, 0.95);
-  border: 3px solid #ff8c00;
-  border-radius: 12px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
-  z-index: 1000;
-  animation: slideUp 0.3s ease-out;
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateX(-50%) translateY(100px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(-50%) translateY(0);
-    opacity: 1;
-  }
-}
-
-.action-bar-content {
+  background: rgba(255, 140, 0, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  white-space: nowrap;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
+  gap: 4px;
+  animation: fadeInOut 2s ease-in-out infinite;
 }
 
-.selected-card-display {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.drag-icon {
+  font-size: 12px;
 }
 
-.selected-card {
-  width: 50px;
-  height: 70px;
-  border: 2px solid #333;
-  border-radius: 6px;
-  background: white;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 4px 0 #666;
-  position: relative;
-}
-
-.selected-card-hearts {
-  color: #e74c3c;
-  border-color: #e74c3c;
-}
-
-.selected-card-diamonds {
-  color: #e74c3c;
-  border-color: #e74c3c;
-}
-
-.selected-card-spades {
-  color: #2c3e50;
-  border-color: #2c3e50;
-}
-
-.selected-card-clubs {
-  color: #2c3e50;
-  border-color: #2c3e50;
-}
-
-.selected-card .card-rank {
-  font-size: 16px;
+.drag-text {
+  font-size: 10px;
   font-weight: bold;
 }
 
-.selected-card .card-suit {
-  font-size: 20px;
-  margin-top: 2px;
-}
-
-.selected-text {
-  font-size: 14px;
-  font-weight: bold;
-  color: #ff8c00;
-  font-family: 'Courier New', monospace;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 8px;
-}
-
-.action-btn {
-  padding: 10px 20px;
-  border: 2px solid;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 0;
-  font-family: 'Courier New', monospace;
-  min-width: 70px;
-}
-
-.action-btn:disabled {
-  background: #ccc;
-  border-color: #999;
-  box-shadow: 0 4px 0 #999;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.action-btn:not(:disabled):active {
-  transform: translateY(4px);
-  box-shadow: 0 0 0;
-}
-
-.play-btn {
-  background: #4CAF50;
-  color: white;
-  border-color: #45a049;
-  box-shadow: 0 4px 0 #3d8b40;
-}
-
-.clear-btn {
-  background: #ff6b6b;
-  color: white;
-  border-color: #ff5252;
-  box-shadow: 0 4px 0 #ff3838;
-}
-
-.pass-btn {
-  background: #ff8c00;
-  color: white;
-  border-color: #e67300;
-  box-shadow: 0 4px 0 #cc6600;
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
 }
 
 /* 移动端适配 */
 @media (max-width: 768px) {
   .bottom-action-bar {
     width: 95%;
-    bottom: 10px;
   }
   
   .action-bar-content {
@@ -1417,6 +1350,11 @@ li {
   
   .selected-text {
     font-size: 12px;
+  }
+  
+  .drag-hint {
+    top: -20px;
+    font-size: 8px;
   }
 }
 </style>

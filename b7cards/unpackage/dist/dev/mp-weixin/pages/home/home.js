@@ -26,8 +26,17 @@ const _sfc_main = {
       // 是否可以pass
       passHint: "",
       // pass提示信息
-      filterSuit: null
+      filterSuit: null,
       // 当前筛选的花色，null表示显示所有
+      // 拖动相关数据
+      dragPosition: { x: 50, y: 50 },
+      // 悬浮栏位置百分比
+      isDragging: false,
+      // 是否正在拖动
+      dragStartPos: { x: 0, y: 0 },
+      // 拖动开始位置
+      barStartPos: { x: 0, y: 0 }
+      // 悬浮栏开始位置
     };
   },
   onLoad() {
@@ -51,18 +60,18 @@ const _sfc_main = {
     },
     setupWebSocketListener() {
       if (app.globalData.socketTask && app.globalData.isConnected) {
-        common_vendor.index.__f__("log", "at pages/home/home.vue:207", "监听器设置成功");
+        common_vendor.index.__f__("log", "at pages/home/home.vue:230", "监听器设置成功");
         this.canbutton = true;
         app.globalData.socketTask.onMessage((res) => {
-          common_vendor.index.__f__("log", "at pages/home/home.vue:211", "Home页面收到WebSocket消息:", res);
+          common_vendor.index.__f__("log", "at pages/home/home.vue:234", "Home页面收到WebSocket消息:", res);
           try {
             const messageData = JSON.parse(res.data);
             if (messageData.type == "syninformation") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:217", "进入到同步数组if");
+              common_vendor.index.__f__("log", "at pages/home/home.vue:240", "进入到同步数组if");
               this.playerlist = messageData.content;
             }
             if (messageData.type == "alert") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:223", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:246", messageData.content);
               common_vendor.index.showToast({
                 title: messageData.content,
                 icon: "error",
@@ -70,7 +79,7 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "gameStartRes") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:231", "收到游戏开始响应，手牌信息:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:254", "收到游戏开始响应，手牌信息:", messageData.content);
               this.playerCards = messageData.content.playerCards || [];
               this.gameStatus = "playing";
               this.selectedCard = null;
@@ -90,7 +99,7 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "pileUpdate") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:258", "收到牌堆更新消息:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:281", "收到牌堆更新消息:", messageData.content);
               this.gamePiles = messageData.content.pileInfo;
               if (messageData.content.currentPlayer) {
                 this.currentPlayer = messageData.content.currentPlayer;
@@ -107,7 +116,7 @@ const _sfc_main = {
               }
             }
             if (messageData.type == "playCardSuccess") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:283", "出牌成功:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:306", "出牌成功:", messageData.content);
               common_vendor.index.showToast({
                 title: messageData.content,
                 icon: "success",
@@ -115,7 +124,7 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "playCardFail") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:293", "出牌失败:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:316", "出牌失败:", messageData.content);
               common_vendor.index.showToast({
                 title: messageData.content,
                 icon: "error",
@@ -123,7 +132,7 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "passSuccess") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:303", "Pass成功:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:326", "Pass成功:", messageData.content);
               if (messageData.content.nextPlayer) {
                 this.currentPlayer = messageData.content.nextPlayer;
                 this.isYourTurn = this.currentPlayer === app.globalData.diviceid;
@@ -136,7 +145,7 @@ const _sfc_main = {
               });
             }
             if (messageData.type == "passFail") {
-              common_vendor.index.__f__("log", "at pages/home/home.vue:322", "Pass失败:", messageData.content);
+              common_vendor.index.__f__("log", "at pages/home/home.vue:345", "Pass失败:", messageData.content);
               common_vendor.index.showToast({
                 title: messageData.content,
                 icon: "error",
@@ -144,21 +153,21 @@ const _sfc_main = {
               });
             }
           } catch (error) {
-            common_vendor.index.__f__("error", "at pages/home/home.vue:331", "消息解析失败:", error, "原始数据:", res.data);
+            common_vendor.index.__f__("error", "at pages/home/home.vue:354", "消息解析失败:", error, "原始数据:", res.data);
           }
         });
         this.isListening = true;
-        common_vendor.index.__f__("log", "at pages/home/home.vue:338", "Home页面WebSocket监听器已设置");
+        common_vendor.index.__f__("log", "at pages/home/home.vue:361", "Home页面WebSocket监听器已设置");
       } else {
-        common_vendor.index.__f__("log", "at pages/home/home.vue:340", "WebSocket未连接，无法设置监听器");
+        common_vendor.index.__f__("log", "at pages/home/home.vue:363", "WebSocket未连接，无法设置监听器");
         setTimeout(() => {
           this.setupWebSocketListener();
         }, 2e3);
       }
     },
     SynInformation() {
-      common_vendor.index.__f__("log", "at pages/home/home.vue:348", "是否成功连接" + app.globalData.isConnected);
-      common_vendor.index.__f__("log", "at pages/home/home.vue:349", "socketTask:" + app.globalData.socketTask);
+      common_vendor.index.__f__("log", "at pages/home/home.vue:371", "是否成功连接" + app.globalData.isConnected);
+      common_vendor.index.__f__("log", "at pages/home/home.vue:372", "socketTask:" + app.globalData.socketTask);
       if (app.globalData.isConnected && app.globalData.socketTask) {
         const message = {
           type: "system",
@@ -169,10 +178,10 @@ const _sfc_main = {
           data: JSON.stringify(message),
           success: () => {
             this.isConnected = true;
-            common_vendor.index.__f__("log", "at pages/home/home.vue:363", "同步信息成功");
+            common_vendor.index.__f__("log", "at pages/home/home.vue:386", "同步信息成功");
           },
           fail: (err) => {
-            common_vendor.index.__f__("error", "at pages/home/home.vue:368", "同步用户信息失败:", err);
+            common_vendor.index.__f__("error", "at pages/home/home.vue:391", "同步用户信息失败:", err);
           }
         });
       } else {
@@ -192,10 +201,10 @@ const _sfc_main = {
         data: JSON.stringify(message),
         success: () => {
           this.isConnected = true;
-          common_vendor.index.__f__("log", "at pages/home/home.vue:390", "发送开始游戏请求");
+          common_vendor.index.__f__("log", "at pages/home/home.vue:413", "发送开始游戏请求");
         },
         fail: (err) => {
-          common_vendor.index.__f__("error", "at pages/home/home.vue:395", "发送卡开始请求失败:", err);
+          common_vendor.index.__f__("error", "at pages/home/home.vue:418", "发送卡开始请求失败:", err);
         }
       });
     },
@@ -231,7 +240,7 @@ const _sfc_main = {
     // 设置筛选花色
     setFilterSuit(suit) {
       this.filterSuit = suit;
-      common_vendor.index.__f__("log", "at pages/home/home.vue:425", "筛选花色:", suit);
+      common_vendor.index.__f__("log", "at pages/home/home.vue:448", "筛选花色:", suit);
     },
     // 选择单张牌
     selectCard(card) {
@@ -255,7 +264,7 @@ const _sfc_main = {
         });
         return;
       }
-      common_vendor.index.__f__("log", "at pages/home/home.vue:452", "出牌:", this.selectedCard);
+      common_vendor.index.__f__("log", "at pages/home/home.vue:475", "出牌:", this.selectedCard);
       const message = {
         type: "playCard",
         playerid: app.globalData.diviceid,
@@ -264,10 +273,10 @@ const _sfc_main = {
       app.globalData.socketTask.send({
         data: JSON.stringify(message),
         success: () => {
-          common_vendor.index.__f__("log", "at pages/home/home.vue:465", "出牌请求发送成功，等待服务器验证");
+          common_vendor.index.__f__("log", "at pages/home/home.vue:488", "出牌请求发送成功，等待服务器验证");
         },
         fail: (err) => {
-          common_vendor.index.__f__("error", "at pages/home/home.vue:470", "出牌请求发送失败:", err);
+          common_vendor.index.__f__("error", "at pages/home/home.vue:493", "出牌请求发送失败:", err);
           common_vendor.index.showToast({
             title: "出牌请求发送失败",
             icon: "none",
@@ -286,7 +295,7 @@ const _sfc_main = {
         });
         return;
       }
-      common_vendor.index.__f__("log", "at pages/home/home.vue:491", "玩家选择Pass");
+      common_vendor.index.__f__("log", "at pages/home/home.vue:514", "玩家选择Pass");
       const message = {
         type: "passTurn",
         playerid: app.globalData.diviceid
@@ -294,10 +303,10 @@ const _sfc_main = {
       app.globalData.socketTask.send({
         data: JSON.stringify(message),
         success: () => {
-          common_vendor.index.__f__("log", "at pages/home/home.vue:502", "Pass请求发送成功");
+          common_vendor.index.__f__("log", "at pages/home/home.vue:525", "Pass请求发送成功");
         },
         fail: (err) => {
-          common_vendor.index.__f__("error", "at pages/home/home.vue:505", "Pass请求发送失败:", err);
+          common_vendor.index.__f__("error", "at pages/home/home.vue:528", "Pass请求发送失败:", err);
           common_vendor.index.showToast({
             title: "Pass请求发送失败",
             icon: "none",
@@ -315,13 +324,56 @@ const _sfc_main = {
       }
       this.canPass = true;
       this.passHint = "可以Pass";
-    }
+    },
     // 简化前端判断，所有规则判断交给后端
     // goToTest() {
     //   uni.navigateTo({
     //     url: '/pages/index/index'
     //   });
     // }
+    // 拖动相关方法
+    // 开始拖动
+    startDrag(event) {
+      try {
+        this.isDragging = true;
+        this.dragStartPos = {
+          x: event.touches[0].clientX,
+          y: event.touches[0].clientY
+        };
+        this.barStartPos = {
+          x: this.dragPosition.x,
+          y: this.dragPosition.y
+        };
+      } catch (error) {
+        common_vendor.index.__f__("error", "at pages/home/home.vue:571", "开始拖动错误:", error);
+        this.isDragging = false;
+      }
+    },
+    // 拖动中
+    onDrag(event) {
+      if (!this.isDragging)
+        return;
+      try {
+        const currentX = event.touches[0].clientX;
+        const currentY = event.touches[0].clientY;
+        const deltaX = currentX - this.dragStartPos.x;
+        const deltaY = currentY - this.dragStartPos.y;
+        const screenWidth = 375;
+        const screenHeight = 667;
+        let newX = this.barStartPos.x + deltaX / screenWidth * 100;
+        let newY = this.barStartPos.y + deltaY / screenHeight * 100;
+        newX = Math.max(10, Math.min(newX, 90));
+        newY = Math.max(10, Math.min(newY, 90));
+        this.dragPosition = { x: newX, y: newY };
+      } catch (error) {
+        common_vendor.index.__f__("error", "at pages/home/home.vue:600", "拖动处理错误:", error);
+        this.isDragging = false;
+      }
+    },
+    // 结束拖动
+    endDrag() {
+      this.isDragging = false;
+    }
   }
 };
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
@@ -415,7 +467,14 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   }, $data.isYourTurn ? {
     L: common_vendor.o((...args) => $options.passTurn && $options.passTurn(...args)),
     M: !$data.canPass
-  } : {}) : {});
+  } : {}, {
+    N: $data.dragPosition.x + "%",
+    O: $data.dragPosition.y + "%",
+    P: common_vendor.o((...args) => $options.startDrag && $options.startDrag(...args)),
+    Q: common_vendor.o((...args) => $options.onDrag && $options.onDrag(...args)),
+    R: common_vendor.o((...args) => $options.endDrag && $options.endDrag(...args)),
+    S: common_vendor.o((...args) => $options.endDrag && $options.endDrag(...args))
+  }) : {});
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render]]);
 wx.createPage(MiniProgramPage);

@@ -64,7 +64,7 @@
 				}
 				// ----------------------------------------------------这里放着url
 				const deviceId = uni.getSystemInfoSync().deviceId || generateDeviceId();
-				const socketUrl = 'ws://192.168.32.118:3001?deviceId=' + deviceId;
+				const socketUrl = 'ws://192.168.32.136:3001?deviceId=' + deviceId;
 				console.log("当前设备持有url" + socketUrl);
 				this.socketTask = uni.connectSocket({
 					url:socketUrl,
